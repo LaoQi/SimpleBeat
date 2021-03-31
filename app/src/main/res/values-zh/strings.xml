@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">简单节拍器</string>
+    <string name="start">start</string>
+    <string name="stop">stop</string>
+</resources>
