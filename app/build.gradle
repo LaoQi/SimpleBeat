@@ -2,6 +2,9 @@ plugins {
     id 'com.android.application'
 }
 
+def cmd = 'git rev-list HEAD --count'
+def gitVersion = cmd.execute().text.trim().toInteger()
+
 android {
     compileSdkVersion 30
     buildToolsVersion "30.0.3"
@@ -10,8 +13,8 @@ android {
         applicationId "com.madao.simplebeat"
         minSdkVersion 23
         targetSdkVersion 30
-        versionCode 1
-        versionName "1.0"
+        versionCode gitVersion
+        versionName "1." + gitVersion
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -22,6 +25,18 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+//    applicationVariants.all { variant ->
+//        if (variant.buildType.name.equals('release') || variant.buildType.name.equals('debug')) {
+//            variant.outputs.each { output ->
+//                output.versionCodeOverride = gitVersionCode()
+//                output.versionNameOverride =  gitVersionTag()
+//            }
+////            variant.mergedFlavor.versionCode = gitVersionCode()
+////            variant.mergedFlavor.versionName = gitVersionTag()
+//        }
+//    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8

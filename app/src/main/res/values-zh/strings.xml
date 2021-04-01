@@ -2,4 +2,10 @@
     <string name="app_name">简单节拍器</string>
     <string name="start">start</string>
     <string name="stop">stop</string>
+    <string name="bpm">BPM</string>
+    <string name="about">关于</string>
+    <string name="show_ticks">显示计数</string>
+    <string name="hidden_ticks">隐藏计数</string>
+    <string name="source_code">源代码</string>
+    <string name="ok">确定</string>
 </resources>

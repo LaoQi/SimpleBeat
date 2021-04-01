@@ -4,33 +4,60 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/black"
+    android:backgroundTint="@color/black"
     tools:context=".MainActivity">
 
     <NumberPicker
         android:id="@+id/bpmPicker"
-        android:layout_width="221dp"
-        android:layout_height="208dp"
+        android:layout_width="match_parent"
+        android:layout_height="280dp"
+        android:background="@color/black"
+        android:backgroundTint="@color/white"
+        android:backgroundTintMode="multiply"
+        android:foregroundTint="#000000"
+        android:solidColor="#000000"
+        android:theme="@style/Theme.picker"
         app:layout_constraintBottom_toTopOf="@+id/toggleButton"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.314">
 
     </NumberPicker>
 
     <ToggleButton
         android:id="@+id/toggleButton"
-        android:layout_width="165dp"
-        android:layout_height="85dp"
+        android:layout_width="140dp"
+        android:layout_height="60dp"
+        android:background="@drawable/button_shape"
         android:checked="false"
         android:onClick="onStartStopClick"
+        android:textColor="@color/gray_300"
         android:textOff="@string/start"
         android:textOn="@string/stop"
-        android:textSize="30sp"
+        android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.776" />
+        app:layout_constraintVertical_bias="0.896" />
+
+    <TextView
+        android:id="@+id/statusBar"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:paddingStart="10sp"
+        android:textAlignment="textStart"
+        android:textColor="@color/gray_300"
+        android:textSize="18sp"
+        app:layout_constraintBottom_toTopOf="@+id/bpmPicker"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.326"
+        tools:ignore="RtlSymmetry" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

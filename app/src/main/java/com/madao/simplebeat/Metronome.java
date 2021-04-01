@@ -6,33 +6,31 @@ import android.media.AudioTrack;
 import android.os.Handler;
 import android.util.Log;
 
+import java.util.Arrays;
+
 public class Metronome extends Thread {
-
-	private double upbeat = 2440;
-	private double downbeat = 3440;
-
-	private final int sampleRate = 24000;
 	private AudioTrack audioTrack;
 	private boolean playing = false;
 
 	private final Handler mHandler;
 
 	private int bpm = 120;
-	private int beat = 4;
+	private int notes = 4;
 
-	private int lastBpm = bpm;
-	private int lastBeat = beat;
+	private boolean changed = false;
 
 	private byte[] wave;
 
-	private long debugStartTime;
+	private long startTime;
 	private int tickCount;
+
+	private byte[] upbeat;
+	private byte[] downbeat;
 	
 	public Metronome(Handler handler) {
 		this.mHandler = handler;
 		tickCount = 0;
 		createPlayer();
-		generateSection();
 	}
 
 	private void createPlayer() {
@@ -43,7 +41,7 @@ public class Metronome extends Thread {
 						.build())
 				.setAudioFormat(new AudioFormat.Builder()
 						.setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-						.setSampleRate(sampleRate)
+						.setSampleRate(Constant.SampleRate)
 						.setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
 						.build())
 				.setTransferMode(AudioTrack.MODE_STREAM)
@@ -52,62 +50,39 @@ public class Metronome extends Thread {
 				.build();
 	}
 
-	private double[] getWave(int samples, double frequencyOfTone) {
-		double[] sample = new double[samples];
-		for (int i = 0; i < samples; i++) {
-			sample[i] = Math.sin(2 * Math.PI * i / (sampleRate/frequencyOfTone));
-		}
-		return sample;
-	}
-
 	private void generateSection() {
-		int tick = sampleRate / 8;
-		int i;
-		int length = 0;
-		int skip = (int) (sampleRate * 60 / bpm - tick);
-		double[] beatsBuffer = new double[sampleRate * 8];
-		double[] downbeatSound = getWave(tick, downbeat);
-		for(double t : downbeatSound) {
-			beatsBuffer[length++] = t;
+		// default sampleRate 44100Hz 16 bit
+		int total = (int) (Constant.SampleRate * 2 * 60 * notes * 1f / bpm);
+		// align 4 byte
+		if (total % 2 > 0) {
+			total = total - (total % 2);
 		}
-		for (i = 0; i < skip; i++) {
-			beatsBuffer[length++] = 0;
+		int unit = (int) (total * 1f / notes);
+		if (unit % 2 > 0) {
+			unit = unit - (unit % 2);
 		}
-		double[] upbeatSound = getWave(tick, upbeat);
-		for (i = 1; i < beat; i++) {
-			for(double t : upbeatSound) {
-				beatsBuffer[length++] = t;
-			}
-			for (int j = 0; j < skip; j++) {
-				beatsBuffer[length++] = 0;
-			}
-		}
+		wave = new byte[total];
+		Arrays.fill(wave, (byte)0);
+		System.arraycopy(downbeat, 0, wave, 0, downbeat.length);
 
-		wave = new byte[2 * length];
-		int index = 0;
-		for (i = 0; i < length; i++) {
-			double sample = beatsBuffer[i];
-			// scale to maximum amplitude
-			short maxSample = (short) ((sample * Short.MAX_VALUE));
-			// in 16 bit wav PCM, first byte is the low order byte
-			wave[index++] = (byte) (maxSample & 0x00ff);
-			wave[index++] = (byte) ((maxSample & 0xff00) >>> 8);
+		for (int i = 1; i < notes; i++) {
+			System.arraycopy(upbeat, 0, wave, i * unit, downbeat.length);
 		}
-		Log.d(getName(), String.format("section length %d wave size %d", length, wave.length));
+		changed = false;
+		Log.d(getName(), String.format("section total %d unit %d wave length %d time %f", total, unit, wave.length, wave.length * 1f / Constant.SampleRate ));
 	}
 
 	private void pushAudioStream() {
-		if (tickCount % 10 == 0) {
-			long endTime = System.currentTimeMillis();
-			Log.d(getName(), String.format("start %d delta %d count %d", debugStartTime, endTime - debugStartTime, tickCount));
-		}
-		int offset = 0;
-		while (offset < wave.length) {
-			int end = Math.min(wave.length - offset, sampleRate);
-			audioTrack.write(wave, offset, end);
-			offset += sampleRate;
-		}
-		tickCount += beat;
+		audioTrack.write(wave, 0, wave.length);
+		tickCount += notes;
+		long endTime = System.currentTimeMillis();
+		mHandler.sendMessage(Messages.TickTime((int)(endTime - startTime), tickCount));
+//		int offset = 0;
+//		while (offset < wave.length) {
+//			int end = Math.min(wave.length - offset, Constant.SampleRate);
+//			audioTrack.write(wave, offset, end);
+//			offset += sampleRate;
+//		}
 	}
 
 	@Override
@@ -116,15 +91,13 @@ public class Metronome extends Thread {
 		super.run();
 		while(true) {
 			if (playing) {
-				if (lastBpm != bpm || lastBeat != beat) {
-					bpm = lastBpm;
-					beat = lastBeat;
+				if (changed) {
 					generateSection();
 				}
 				pushAudioStream();
 			} else {
 				try {
-					Thread.sleep(100);
+					Thread.sleep(10);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -139,9 +112,10 @@ public class Metronome extends Thread {
 
 	public void play() {
 		playing = true;
+		generateSection();
 		audioTrack.play();
 		tickCount = 0;
-		debugStartTime = System.currentTimeMillis();
+		startTime = System.currentTimeMillis();
 	}
 
 	public void close() {
@@ -151,10 +125,22 @@ public class Metronome extends Thread {
 	}
 
 	public void setBpm(int bpm) {
-		lastBpm = bpm;
+		this.changed = true;
+		this.bpm = bpm;
 	}
 
-	public void setBeat(int beat) {
-		lastBeat = beat;
+	public void setNotes(int notes) {
+		this.changed = true;
+		this.notes = notes;
+	}
+
+	public void setUpbeat(byte[] upbeat) {
+		this.changed = true;
+		this.upbeat = upbeat;
+	}
+
+	public void setDownbeat(byte[] downbeat) {
+		this.changed = true;
+		this.downbeat = downbeat;
 	}
 }
