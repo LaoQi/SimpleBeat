@@ -45,7 +45,7 @@ public class Metronome extends Thread {
 						.setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
 						.build())
 				.setTransferMode(AudioTrack.MODE_STREAM)
-//				.setBufferSizeInBytes(sampleRate)
+//				.setBufferSizeInBytes(Constant.SampleRate)
 //				.setBufferSizeInBytes(sampleRate * 2)
 				.build();
 	}
@@ -63,10 +63,10 @@ public class Metronome extends Thread {
 		}
 		wave = new byte[total];
 		Arrays.fill(wave, (byte)0);
-		System.arraycopy(downbeat, 0, wave, 0, downbeat.length);
+		System.arraycopy(downbeat, 0, wave, 0, Math.min(downbeat.length, unit));
 
 		for (int i = 1; i < notes; i++) {
-			System.arraycopy(upbeat, 0, wave, i * unit, downbeat.length);
+			System.arraycopy(upbeat, 0, wave, i * unit, Math.min(upbeat.length, unit));
 		}
 		changed = false;
 		Log.d(getName(), String.format("section total %d unit %d wave length %d time %f", total, unit, wave.length, wave.length * 1f / Constant.SampleRate ));
@@ -88,7 +88,6 @@ public class Metronome extends Thread {
 	@Override
 	@SuppressWarnings({"InfiniteLoopStatement", "BusyWait"})
 	public void run() {
-		super.run();
 		while(true) {
 			if (playing) {
 				if (changed) {

@@ -1,7 +1,6 @@
 package com.madao.simplebeat;
 
 import android.annotation.SuppressLint;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -9,29 +8,36 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.Window;
+import android.view.ViewGroup;
 import android.widget.NumberPicker;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.IOException;
 
 
 public class MainActivity extends AppCompatActivity {
 
-    private final static String tag = "SimpleBeat";
+//    private final static String tag = "SimpleBeat";
 
     private Metronome metronome;
+    private AudioManager audioManager;
+    private Profile profile;
     private boolean isPlaying = false;
     private boolean showStatusBar = false;
+    private int audioInitPosition;
     private TextView statusBar;
+    private RecyclerView audioSelector;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,41 +45,109 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         setTitle("");
 
-        statusBar = (TextView) findViewById(R.id.statusBar);
-        updateStatusBar(0, 0);
-        statusBar.setVisibility(View.INVISIBLE);
-
-        AudioManager audios = new AudioManager(this);
+        profile = new Profile(this);
+        audioManager = new AudioManager(this);
         metronome = new Metronome(new Handler(Looper.getMainLooper(), msg -> {
-            switch (msg.what) {
-                case Messages.MsgTickTime:
-                    this.updateStatusBar(msg.arg1, msg.arg2);
+            if (msg.what == Messages.MsgTickTime) {
+                this.updateStatusBar(msg.arg1, msg.arg2);
 //                    Log.d(tag, String.format("delta %d count %d", msg.arg1, msg.arg2));
-                    break;
-                default:
-                    break;
             }
             return false;
         }));
-        try {
-            AudioData audioData = audios.getAudio("classic");
-            metronome.setUpbeat(audioData.getUpbeat());
-            metronome.setDownbeat(audioData.getDownbeat());
-        } catch (AudioManager.AudioDataNotFound | IOException audioDataNotFound) {
-            audioDataNotFound.printStackTrace();
-        }
-        metronome.start();
 
-        NumberPicker bpmPicker = (NumberPicker) findViewById(R.id.bpmPicker);
-        // 设置NumberPicker属性
-        bpmPicker.setMinValue(60);
-        bpmPicker.setMaxValue(240);
-        bpmPicker.setValue(120);
+        audioInitPosition = audioManager.getPosition(profile.getAudioKey());
+        updateAudio(profile.getAudioKey());
+
+        initStatusBar();
+        initBpmPicker();
+        initAudioSelector();
+
+        new Handler(getMainLooper()).postDelayed(() -> {
+            audioSelector.smoothScrollToPosition(audioInitPosition + 1);
+        }, 100);
+        metronome.start();
+    }
+
+    private void initStatusBar() {
+        statusBar = findViewById(R.id.statusBar);
+        updateStatusBar(0, 0);
+        statusBar.setVisibility(View.INVISIBLE);
+    }
+
+    private void initBpmPicker() {
+        NumberPicker bpmPicker = findViewById(R.id.bpmPicker);
+        bpmPicker.setMinValue(Constant.MinBPM);
+        bpmPicker.setMaxValue(Constant.MaxBPM);
+        bpmPicker.setValue(profile.getBPM());
         bpmPicker.setDescendantFocusability(NumberPicker.FOCUS_BLOCK_DESCENDANTS);
 
-        // 监听数值改变事件
         bpmPicker.setOnValueChangedListener((picker, oldVal, newVal) -> {
             metronome.setBpm(newVal);
+            profile.setBPM(newVal);
+        });
+    }
+
+    private void initAudioSelector() {
+        audioSelector = findViewById(R.id.audioSelector);
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL,false);
+        audioSelector.setLayoutManager(linearLayoutManager);
+        audioSelector.setAdapter(new RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            private View lastItem;
+            private int selectedPosition = 0;
+
+            @NonNull
+            @Override
+            public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+                View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.audio_selector_item, parent, false);
+                v.getLayoutParams().width = parent.getWidth() / 3;
+                return new RecyclerView.ViewHolder(v) {};
+            }
+
+            public void scroll() {
+                int first = linearLayoutManager.findFirstVisibleItemPosition();
+                if (first == selectedPosition && selectedPosition > 0) {
+                    audioSelector.smoothScrollToPosition(selectedPosition - 1);
+                } else {
+                    audioSelector.smoothScrollToPosition(selectedPosition + 1);
+                }
+            }
+
+            protected void onClickItem(View view, int position) {
+                selectedPosition = position;
+                scroll();
+                updateAudio(position);
+                highlight(view);
+                resetItem(lastItem);
+
+                lastItem = view;
+            }
+
+            protected void highlight(View view) {
+                view.setBackground(getDrawable(R.drawable.audio_item_checked_shape));
+                ((TextView) view).setTextColor(getColor(R.color.blue_700));
+            }
+
+            protected void resetItem(View view) {
+                view.setBackground(getDrawable(R.drawable.audio_item_normal_shape));
+                ((TextView) view).setTextColor(getColor(R.color.gray_300));
+            }
+
+            @Override
+            public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+                TextView textView = holder.itemView.findViewById(R.id.audioSelectorItemName);
+                textView.setText(audioManager.getAudioList().get(position));
+                textView.setOnClickListener(v -> onClickItem(v, position));
+                if (position == audioInitPosition) {
+                    highlight(textView);
+                    lastItem = textView;
+                    selectedPosition = position;
+                }
+            }
+
+            @Override
+            public int getItemCount() {
+                return audioManager.getAudioList().size();
+            }
         });
     }
 
@@ -82,22 +156,25 @@ public class MainActivity extends AppCompatActivity {
         statusBar.setText(String.format("Ticks: %d  -  Time: %d ms", ticks, delta));
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        if (showStatusBar) {
-            menu.add(1, 1, 1, R.string.hidden_ticks);
-        } else {
-            menu.add(1, 1, 1, R.string.show_ticks);
-        }
-        menu.add(1, 2, 1, R.string.about);
+    public void updateAudio(int position) {
+        updateAudio(audioManager.getAudioList().get(position));
+    }
 
-        return super.onCreateOptionsMenu(menu);
+    public void updateAudio(String selected) {
+        try {
+            AudioData audioData = audioManager.getAudio(selected);
+            metronome.setUpbeat(audioData.getUpbeat());
+            metronome.setDownbeat(audioData.getDownbeat());
+            profile.setAudioKey(selected);
+        } catch (AudioManager.AudioDataNotFound | IOException exception) {
+            exception.printStackTrace();
+            Toast.makeText(this, exception.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.clear();
-        MenuItem m;
         if (showStatusBar) {
             menu.add(1, 1, 1, R.string.hidden_ticks);
         } else {
