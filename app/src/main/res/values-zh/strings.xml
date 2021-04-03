@@ -8,4 +8,6 @@
     <string name="hidden_ticks">隐藏计数</string>
     <string name="source_code">源代码</string>
     <string name="ok">确定</string>
+    <string name="keep_screen_on">打开屏幕常亮</string>
+    <string name="keep_screen_off">关闭屏幕常亮</string>
 </resources>

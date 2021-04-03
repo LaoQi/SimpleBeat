@@ -1,18 +1,23 @@
 package com.madao.simplebeat;
 
+import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.AnimatedVectorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.ImageButton;
 import android.widget.NumberPicker;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -30,14 +35,22 @@ public class MainActivity extends AppCompatActivity {
 
 //    private final static String tag = "SimpleBeat";
 
+    enum MenusType {
+        MenuStatusBar, MenuKeepScreen, MenuAbout
+    }
+
     private Metronome metronome;
     private AudioManager audioManager;
     private Profile profile;
     private boolean isPlaying = false;
     private boolean showStatusBar = false;
+    private boolean isKeepScreen;
     private int audioInitPosition;
     private TextView statusBar;
+    private TextView timerBar;
     private RecyclerView audioSelector;
+    private long startTime;
+    private Handler mHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,14 +59,20 @@ public class MainActivity extends AppCompatActivity {
         setTitle("");
 
         profile = new Profile(this);
+        isKeepScreen = profile.getKeepScreen();
         audioManager = new AudioManager(this);
-        metronome = new Metronome(new Handler(Looper.getMainLooper(), msg -> {
+
+        mHandler = new Handler(Looper.getMainLooper(), msg -> {
             if (msg.what == Messages.MsgTickTime) {
                 this.updateStatusBar(msg.arg1, msg.arg2);
 //                    Log.d(tag, String.format("delta %d count %d", msg.arg1, msg.arg2));
+            } else if (msg.what == Messages.MsgUpdateTimer) {
+                updateTimerBar();
             }
             return false;
-        }));
+        });
+
+        metronome = new Metronome(mHandler);
 
         audioInitPosition = audioManager.getPosition(profile.getAudioKey());
         updateAudio(profile.getAudioKey());
@@ -61,11 +80,27 @@ public class MainActivity extends AppCompatActivity {
         initStatusBar();
         initBpmPicker();
         initAudioSelector();
+        initTimerBar();
 
-        new Handler(getMainLooper()).postDelayed(() -> {
-            audioSelector.smoothScrollToPosition(audioInitPosition + 1);
-        }, 100);
+        new Handler(getMainLooper()).postDelayed(() -> audioSelector.smoothScrollToPosition(audioInitPosition + 1), 100);
         metronome.start();
+    }
+
+    private void initTimerBar() {
+        timerBar = findViewById(R.id.timerBar);
+        new Thread(() -> {
+            while (true) {
+                if (isPlaying) {
+                    mHandler.sendMessage(Messages.UpdateTimer());
+                }
+                try {
+                    //noinspection BusyWait
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
     private void initStatusBar() {
@@ -156,6 +191,15 @@ public class MainActivity extends AppCompatActivity {
         statusBar.setText(String.format("Ticks: %d  -  Time: %d ms", ticks, delta));
     }
 
+    @SuppressLint({"DefaultLocale", "SetTextI18n"})
+    public void updateTimerBar() {
+        long ts = System.currentTimeMillis() - startTime;
+        long minutes = ts / 60000;
+        long seconds = (ts % 60000) / 1000;
+        long milliseconds = ts % 1000;
+        timerBar.setText(String.format("%d : %02d.%03d", minutes, seconds, milliseconds));
+    }
+
     public void updateAudio(int position) {
         updateAudio(audioManager.getAudioList().get(position));
     }
@@ -172,48 +216,104 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void toggleKeepScreen() {
+        isKeepScreen = !isKeepScreen;
+        if (isKeepScreen) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
+    }
+
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.clear();
         if (showStatusBar) {
-            menu.add(1, 1, 1, R.string.hidden_ticks);
+            menu.add(1,  MenusType.MenuStatusBar.ordinal(), 1, R.string.hidden_ticks);
         } else {
-            menu.add(1, 1, 1, R.string.show_ticks);
+            menu.add(1, MenusType.MenuStatusBar.ordinal(), 1, R.string.show_ticks);
         }
-        menu.add(1, 2, 1, R.string.about);
+
+        if (isKeepScreen) {
+            menu.add(1,  MenusType.MenuKeepScreen.ordinal(), 1, R.string.keep_screen_off);
+        } else {
+            menu.add(1, MenusType.MenuKeepScreen.ordinal(), 1, R.string.keep_screen_on);
+        }
+
+        menu.add(1, MenusType.MenuAbout.ordinal(), 1, R.string.about);
 
         return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        switch (item.getItemId()) {
-            case 1:
+        switch (MenusType.values()[item.getItemId()]) {
+            case MenuStatusBar:
                 showStatusBar = !showStatusBar;
                 statusBar.setVisibility(showStatusBar ? View.VISIBLE : View.INVISIBLE);
                 break;
-            case 2:
+            case MenuKeepScreen:
+                toggleKeepScreen();
+                break;
+            case MenuAbout:
                 showAbout();
                 break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + MenusType.values()[item.getItemId()]);
         }
         return super.onOptionsItemSelected(item);
     }
 
 
     public void onStartStopClick(View view) {
+        AnimatedVectorDrawable drawable = (AnimatedVectorDrawable) ((ImageButton)view).getDrawable();
+
         if (isPlaying) {
             metronome.pause();
             isPlaying = false;
+            drawable.reset();
+            ObjectAnimator.ofFloat(view, "translationX", 400, 0)
+                    .setDuration(500).start();
+            ObjectAnimator.ofFloat(timerBar, "alpha", 1f, 0f)
+                    .setDuration(400).start();
         } else {
             updateStatusBar(0, 0);
             metronome.play();
             isPlaying = true;
+            drawable.start();
+
+            ObjectAnimator.ofFloat(view, "translationX", 0, 400)
+                    .setDuration(500).start();
+
+            ObjectAnimator.ofFloat(timerBar, "alpha", 0f, 1f)
+                    .setDuration(400).start();
+
+            updateTimerBar();
+            startTime = System.currentTimeMillis();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (isKeepScreen) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        profile.setKeepScreen(isKeepScreen);
+        if (isKeepScreen) {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        profile.setKeepScreen(isKeepScreen);
         metronome.close();
     }
 

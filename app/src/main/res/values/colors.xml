@@ -5,6 +5,9 @@
     <color name="gray_300">#FFEEEEEE</color>
     <color name="gray_900">#FF999999</color>
     <color name="blue_700">#FF021AEE</color>
+    <color name="red_500">#FFF44336</color>
+    <color name="red_800">#FFC62828</color>
+    <color name="red_900">#FFB71C1C</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="empty">#00000000</color>
