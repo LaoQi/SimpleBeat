@@ -3,8 +3,6 @@ package com.madao.simplebeat;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import java.lang.reflect.Type;
-
 public class Profile {
 
     private final static String name = "profile";
@@ -12,6 +10,7 @@ public class Profile {
     private final static String KeyBPM = "BPM";
     private final static String KeyAudio = "Audio";
     private final static String KeyKeepScreen = "KeepScreen";
+    private final static String KeySoundBooster = "SoundBooster";
 
     private final SharedPreferences preferences;
 
@@ -26,6 +25,7 @@ public class Profile {
         return preferences.getString(KeyAudio, Constant.AudioDefault);
     }
     public boolean getKeepScreen() { return preferences.getBoolean(KeyKeepScreen, false); }
+    public boolean getSoundBooster() { return preferences.getBoolean(KeySoundBooster, false); }
 
     private void setValue(String key, String value) {
         SharedPreferences.Editor editor = preferences.edit();
@@ -45,7 +45,7 @@ public class Profile {
         editor.apply();
     }
 
-    public void setBPM(int value) {
+    public void setBpm(int value) {
         setValue(KeyBPM, value);
     }
 
@@ -55,5 +55,9 @@ public class Profile {
 
     public void setKeepScreen(boolean value) {
         setValue(KeyKeepScreen, value);
+    }
+
+    public void setSoundBooster(boolean value) {
+        setValue(KeySoundBooster, value);
     }
 }

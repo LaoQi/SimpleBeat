@@ -12,4 +12,7 @@
     <string name="keep_screen_on">Keep Screen On</string>
     <string name="keep_screen_off">Keep Screen Off</string>
     <string name="ok">OK</string>
+    <string name="sound_booster">Sound Booster</string>
+    <string name="sound_booster_on">Sound Booster On</string>
+    <string name="sound_booster_off">Sound Booster Off</string>
 </resources>
