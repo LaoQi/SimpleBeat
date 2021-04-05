@@ -19,7 +19,7 @@ jobs:
         java-version: 1.8
     - name: Set Version
       id: set_version
-      run: git pull --unshallow && echo '::set-output name=VERSION::v1.'`git rev-list HEAD --count`
+      run: git pull --unshallow main && echo '::set-output name=VERSION::v1.'`git rev-list HEAD --count`
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     - name: Build with Gradle
