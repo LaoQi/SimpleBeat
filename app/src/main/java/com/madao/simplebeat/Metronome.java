@@ -11,6 +11,7 @@ import java.util.Arrays;
 public class Metronome extends Thread {
 	private AudioTrack audioTrack;
 	private boolean playing = false;
+	private boolean quit = false;
 
 	private final Handler mHandler;
 
@@ -18,6 +19,7 @@ public class Metronome extends Thread {
 	private int notes = 4;
 
 	private boolean changed = false;
+	private boolean booster = false;
 
 	private byte[] wave;
 
@@ -28,6 +30,7 @@ public class Metronome extends Thread {
 	private byte[] downbeat;
 	
 	public Metronome(Handler handler) {
+		setDaemon(true);
 		this.mHandler = handler;
 		tickCount = 0;
 		createPlayer();
@@ -50,6 +53,29 @@ public class Metronome extends Thread {
 				.build();
 	}
 
+	private byte[] soundBooster(byte[] origin) {
+		byte[] target = new byte[origin.length];
+
+		// add 20db
+		double multiple = Math.pow(10, 20.0/20);
+
+		for (int i = 0; i < origin.length; i += 2) {
+			short volume = (short)((origin[i] & 0xFF) | (origin[i + 1] << 8));
+			int temp = (int)(volume * multiple);
+			if (temp > Short.MAX_VALUE) {
+				volume = Short.MAX_VALUE;
+			} else if (temp < Short.MIN_VALUE) {
+				volume = Short.MIN_VALUE;
+			} else {
+				volume = (short)temp;
+			}
+
+			target[i] = (byte)(volume & 0xFF);
+			target[i + 1] = (byte)((volume >> 8) & 0xFF);
+		}
+		return target;
+	}
+
 	private void generateSection() {
 		// default sampleRate 44100Hz 16 bit
 		int total = (int) (Constant.SampleRate * 2 * 60 * notes * 1f / bpm);
@@ -63,11 +89,20 @@ public class Metronome extends Thread {
 		}
 		wave = new byte[total];
 		Arrays.fill(wave, (byte)0);
-		System.arraycopy(downbeat, 0, wave, 0, Math.min(downbeat.length, unit));
+
+		byte[] beat1 = downbeat;
+		byte[] beat2 = upbeat;
+		if (booster) {
+			beat1 = soundBooster(downbeat);
+			beat2 = soundBooster(upbeat);
+		}
+
+		System.arraycopy(beat1, 0, wave, 0, Math.min(beat1.length, unit));
 
 		for (int i = 1; i < notes; i++) {
-			System.arraycopy(upbeat, 0, wave, i * unit, Math.min(upbeat.length, unit));
+			System.arraycopy(beat2, 0, wave, i * unit, Math.min(beat2.length, unit));
 		}
+
 		changed = false;
 		Log.d(getName(), String.format("section total %d unit %d wave length %d time %f", total, unit, wave.length, wave.length * 1f / Constant.SampleRate ));
 	}
@@ -86,9 +121,9 @@ public class Metronome extends Thread {
 	}
 
 	@Override
-	@SuppressWarnings({"InfiniteLoopStatement", "BusyWait"})
+	@SuppressWarnings({"BusyWait"})
 	public void run() {
-		while(true) {
+		while(!quit) {
 			if (playing) {
 				if (changed) {
 					generateSection();
@@ -121,6 +156,7 @@ public class Metronome extends Thread {
 		playing = false;
 		audioTrack.stop();
 		audioTrack.release();
+		quit = true;
 	}
 
 	public void setBpm(int bpm) {
@@ -141,5 +177,10 @@ public class Metronome extends Thread {
 	public void setDownbeat(byte[] downbeat) {
 		this.changed = true;
 		this.downbeat = downbeat;
+	}
+
+	public void setBooster(boolean value) {
+		this.changed = true;
+		this.booster = value;
 	}
 }

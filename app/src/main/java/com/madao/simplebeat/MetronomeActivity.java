@@ -26,7 +26,7 @@ import java.io.IOException;
 public class MetronomeActivity extends AppCompatActivity {
 
     enum MenusType {
-        MenuStatusBar, MenuKeepScreen, MenuAbout
+        MenuStatusBar, MenuKeepScreen, MenuSoundBooster, MenuAbout
     }
 
     private Metronome metronome;
@@ -34,13 +34,13 @@ public class MetronomeActivity extends AppCompatActivity {
     private Profile profile;
     private boolean isPlaying = false;
     private boolean showStatusBar = false;
+    private boolean soundBooster = false;
     private boolean isKeepScreen;
     private int audioInitPosition;
     private TextView statusBar;
     private TextView timerBar;
     private long startTime;
     private Handler mHandler;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,6 +50,7 @@ public class MetronomeActivity extends AppCompatActivity {
 
         profile = new Profile(this);
         isKeepScreen = profile.getKeepScreen();
+        soundBooster = profile.getSoundBooster();
         audioManager = new AudioManager(this);
 
         mHandler = new Handler(Looper.getMainLooper(), msg -> {
@@ -62,18 +63,24 @@ public class MetronomeActivity extends AppCompatActivity {
             return false;
         });
 
-        metronome = new Metronome(mHandler);
-        metronome.setBpm(profile.getBPM());
-
         audioInitPosition = audioManager.getPosition(profile.getAudioKey());
-        updateAudio(profile.getAudioKey());
 
         initStatusBar();
         initBpmPicker();
         initAudioSelector();
         initTimerBar();
 
+        if (metronome != null && metronome.isAlive()) {
+            metronome.close();
+        }
+
+        metronome = new Metronome(mHandler);
+        metronome.setBpm(profile.getBPM());
+        metronome.setBooster(soundBooster);
         metronome.start();
+        updateAudio(profile.getAudioKey());
+        ImageButton view = findViewById(R.id.startButton);
+        ((AnimatedVectorDrawable) (view).getDrawable()).reset();
     }
 
     private void initTimerBar() {
@@ -105,7 +112,7 @@ public class MetronomeActivity extends AppCompatActivity {
 
         bpmPicker.setOnValueChangedListener((oldVal, newVal) -> {
             metronome.setBpm(newVal);
-            profile.setBPM(newVal);
+            profile.setBpm(newVal);
         });
     }
 
@@ -149,32 +156,47 @@ public class MetronomeActivity extends AppCompatActivity {
         }
     }
 
+    public void toggleSoundBooster() {
+        soundBooster = !soundBooster;
+        metronome.setBooster(soundBooster);
+        profile.setSoundBooster(soundBooster);
+    }
+
+    private void play() {
+        ImageButton view = findViewById(R.id.startButton);
+        AnimatedVectorDrawable drawable = (AnimatedVectorDrawable) (view).getDrawable();
+        float right = Math.min(timerBar.getRight() + 20, getWindow().getDecorView().getWidth()/2 - (view.getWidth()/2));
+        metronome.pause();
+        isPlaying = false;
+        drawable.reset();
+        ObjectAnimator.ofFloat(view, "translationX", right, 0)
+                .setDuration(500).start();
+        ObjectAnimator.ofFloat(timerBar, "alpha", 1f, 0f)
+                .setDuration(400).start();
+    }
+
+    private void stop() {
+        ImageButton view = findViewById(R.id.startButton);
+        AnimatedVectorDrawable drawable = (AnimatedVectorDrawable) (view).getDrawable();
+        float right = Math.min(timerBar.getRight() + 20, getWindow().getDecorView().getWidth()/2 - (view.getWidth()/2));
+        updateStatusBar(0, 0);
+        metronome.play();
+        isPlaying = true;
+        drawable.start();
+        ObjectAnimator.ofFloat(view, "translationX", 0, right)
+                .setDuration(500).start();
+
+        ObjectAnimator.ofFloat(timerBar, "alpha", 0f, 1f)
+                .setDuration(400).start();
+        updateTimerBar();
+        startTime = System.currentTimeMillis();
+    }
+
     public void onStartStopClick(View view) {
-        AnimatedVectorDrawable drawable = (AnimatedVectorDrawable) ((ImageButton)view).getDrawable();
-
-        float right = Math.min(timerBar.getRight() + 20, getWindow().getDecorView().getWidth()/2 - view.getWidth());
         if (isPlaying) {
-            metronome.pause();
-            isPlaying = false;
-            drawable.reset();
-            ObjectAnimator.ofFloat(view, "translationX", right, 0)
-                    .setDuration(500).start();
-            ObjectAnimator.ofFloat(timerBar, "alpha", 1f, 0f)
-                    .setDuration(400).start();
+            play();
         } else {
-            updateStatusBar(0, 0);
-            metronome.play();
-            isPlaying = true;
-            drawable.start();
-
-            ObjectAnimator.ofFloat(view, "translationX", 0, right)
-                    .setDuration(500).start();
-
-            ObjectAnimator.ofFloat(timerBar, "alpha", 0f, 1f)
-                    .setDuration(400).start();
-
-            updateTimerBar();
-            startTime = System.currentTimeMillis();
+            stop();
         }
     }
 
@@ -188,6 +210,9 @@ public class MetronomeActivity extends AppCompatActivity {
                     break;
                 case MenuKeepScreen:
                     toggleKeepScreen();
+                    break;
+                case MenuSoundBooster:
+                    toggleSoundBooster();
                     break;
                 case MenuAbout:
                     showAbout();
@@ -210,6 +235,12 @@ public class MetronomeActivity extends AppCompatActivity {
             menu.add(1,  MenusType.MenuKeepScreen.ordinal(), 1, R.string.keep_screen_off);
         } else {
             menu.add(1, MenusType.MenuKeepScreen.ordinal(), 1, R.string.keep_screen_on);
+        }
+
+        if (soundBooster) {
+            menu.add(1,  MenusType.MenuSoundBooster.ordinal(), 1, R.string.sound_booster_off);
+        } else {
+            menu.add(1, MenusType.MenuSoundBooster.ordinal(), 1, R.string.sound_booster_on);
         }
 
         menu.add(1, MenusType.MenuAbout.ordinal(), 1, R.string.about);
