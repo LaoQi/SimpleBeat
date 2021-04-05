@@ -9,31 +9,21 @@ import android.graphics.drawable.AnimatedVectorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.Looper;
-import android.view.LayoutInflater;
 import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.ImageButton;
-import android.widget.NumberPicker;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.IOException;
 
-
-public class MainActivity extends AppCompatActivity {
-
-//    private final static String tag = "SimpleBeat";
+public class MetronomeActivity extends AppCompatActivity {
 
     enum MenusType {
         MenuStatusBar, MenuKeepScreen, MenuAbout
@@ -48,14 +38,14 @@ public class MainActivity extends AppCompatActivity {
     private int audioInitPosition;
     private TextView statusBar;
     private TextView timerBar;
-    private RecyclerView audioSelector;
     private long startTime;
     private Handler mHandler;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_metronome);
         setTitle("");
 
         profile = new Profile(this);
@@ -73,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         metronome = new Metronome(mHandler);
+        metronome.setBpm(profile.getBPM());
 
         audioInitPosition = audioManager.getPosition(profile.getAudioKey());
         updateAudio(profile.getAudioKey());
@@ -82,7 +73,6 @@ public class MainActivity extends AppCompatActivity {
         initAudioSelector();
         initTimerBar();
 
-        new Handler(getMainLooper()).postDelayed(() -> audioSelector.smoothScrollToPosition(audioInitPosition + 1), 100);
         metronome.start();
     }
 
@@ -104,86 +94,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initStatusBar() {
-        statusBar = findViewById(R.id.statusBar);
+        statusBar = findViewById(R.id.TicksCounter);
         updateStatusBar(0, 0);
         statusBar.setVisibility(View.INVISIBLE);
     }
 
     private void initBpmPicker() {
-        NumberPicker bpmPicker = findViewById(R.id.bpmPicker);
-        bpmPicker.setMinValue(Constant.MinBPM);
-        bpmPicker.setMaxValue(Constant.MaxBPM);
+        BpmPicker bpmPicker = findViewById(R.id.BpmPicker);
         bpmPicker.setValue(profile.getBPM());
-        bpmPicker.setDescendantFocusability(NumberPicker.FOCUS_BLOCK_DESCENDANTS);
 
-        bpmPicker.setOnValueChangedListener((picker, oldVal, newVal) -> {
+        bpmPicker.setOnValueChangedListener((oldVal, newVal) -> {
             metronome.setBpm(newVal);
             profile.setBPM(newVal);
         });
     }
 
     private void initAudioSelector() {
-        audioSelector = findViewById(R.id.audioSelector);
-        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL,false);
-        audioSelector.setLayoutManager(linearLayoutManager);
-        audioSelector.setAdapter(new RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-            private View lastItem;
-            private int selectedPosition = 0;
-
-            @NonNull
-            @Override
-            public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-                View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.audio_selector_item, parent, false);
-                v.getLayoutParams().width = parent.getWidth() / 3;
-                return new RecyclerView.ViewHolder(v) {};
-            }
-
-            public void scroll() {
-                int first = linearLayoutManager.findFirstVisibleItemPosition();
-                if (first == selectedPosition && selectedPosition > 0) {
-                    audioSelector.smoothScrollToPosition(selectedPosition - 1);
-                } else {
-                    audioSelector.smoothScrollToPosition(selectedPosition + 1);
-                }
-            }
-
-            protected void onClickItem(View view, int position) {
-                selectedPosition = position;
-                scroll();
-                updateAudio(position);
-                highlight(view);
-                resetItem(lastItem);
-
-                lastItem = view;
-            }
-
-            protected void highlight(View view) {
-                view.setBackground(getDrawable(R.drawable.audio_item_checked_shape));
-                ((TextView) view).setTextColor(getColor(R.color.blue_700));
-            }
-
-            protected void resetItem(View view) {
-                view.setBackground(getDrawable(R.drawable.audio_item_normal_shape));
-                ((TextView) view).setTextColor(getColor(R.color.gray_300));
-            }
-
-            @Override
-            public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-                TextView textView = holder.itemView.findViewById(R.id.audioSelectorItemName);
-                textView.setText(audioManager.getAudioList().get(position));
-                textView.setOnClickListener(v -> onClickItem(v, position));
-                if (position == audioInitPosition) {
-                    highlight(textView);
-                    lastItem = textView;
-                    selectedPosition = position;
-                }
-            }
-
-            @Override
-            public int getItemCount() {
-                return audioManager.getAudioList().size();
-            }
-        });
+        AudioSelector audioSelector = findViewById(R.id.AudioSelector);
+        audioSelector.bindData(audioInitPosition, audioManager.getAudioList(), (oldVal, newVal) -> updateAudio(audioManager.getAudioList().get(newVal)));
     }
 
     @SuppressLint("DefaultLocale")
@@ -198,10 +126,6 @@ public class MainActivity extends AppCompatActivity {
         long seconds = (ts % 60000) / 1000;
         long milliseconds = ts % 1000;
         timerBar.setText(String.format("%d : %02d.%03d", minutes, seconds, milliseconds));
-    }
-
-    public void updateAudio(int position) {
-        updateAudio(audioManager.getAudioList().get(position));
     }
 
     public void updateAudio(String selected) {
@@ -225,8 +149,56 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
+    public void onStartStopClick(View view) {
+        AnimatedVectorDrawable drawable = (AnimatedVectorDrawable) ((ImageButton)view).getDrawable();
+
+        float right = Math.min(timerBar.getRight() + 20, getWindow().getDecorView().getWidth()/2 - view.getWidth());
+        if (isPlaying) {
+            metronome.pause();
+            isPlaying = false;
+            drawable.reset();
+            ObjectAnimator.ofFloat(view, "translationX", right, 0)
+                    .setDuration(500).start();
+            ObjectAnimator.ofFloat(timerBar, "alpha", 1f, 0f)
+                    .setDuration(400).start();
+        } else {
+            updateStatusBar(0, 0);
+            metronome.play();
+            isPlaying = true;
+            drawable.start();
+
+            ObjectAnimator.ofFloat(view, "translationX", 0, right)
+                    .setDuration(500).start();
+
+            ObjectAnimator.ofFloat(timerBar, "alpha", 0f, 1f)
+                    .setDuration(400).start();
+
+            updateTimerBar();
+            startTime = System.currentTimeMillis();
+        }
+    }
+
+    public void showMenu(View view) {
+        PopupMenu popupMenu = new PopupMenu(this, view);
+        popupMenu.setOnMenuItemClickListener(item -> {
+            switch (MenusType.values()[item.getItemId()]) {
+                case MenuStatusBar:
+                    showStatusBar = !showStatusBar;
+                    statusBar.setVisibility(showStatusBar ? View.VISIBLE : View.INVISIBLE);
+                    break;
+                case MenuKeepScreen:
+                    toggleKeepScreen();
+                    break;
+                case MenuAbout:
+                    showAbout();
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + MenusType.values()[item.getItemId()]);
+            }
+            return true;
+        });
+
+        Menu menu = popupMenu.getMenu();
         menu.clear();
         if (showStatusBar) {
             menu.add(1,  MenusType.MenuStatusBar.ordinal(), 1, R.string.hidden_ticks);
@@ -241,57 +213,35 @@ public class MainActivity extends AppCompatActivity {
         }
 
         menu.add(1, MenusType.MenuAbout.ordinal(), 1, R.string.about);
-
-        return super.onPrepareOptionsMenu(menu);
+        popupMenu.show();
     }
 
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        switch (MenusType.values()[item.getItemId()]) {
-            case MenuStatusBar:
-                showStatusBar = !showStatusBar;
-                statusBar.setVisibility(showStatusBar ? View.VISIBLE : View.INVISIBLE);
-                break;
-            case MenuKeepScreen:
-                toggleKeepScreen();
-                break;
-            case MenuAbout:
-                showAbout();
-                break;
-            default:
-                throw new IllegalStateException("Unexpected value: " + MenusType.values()[item.getItemId()]);
+    private void showAbout() {
+        String title = getString(R.string.app_name);
+        PackageManager pm = getPackageManager();
+        try {
+            PackageInfo packageInfo = pm.getPackageInfo(getPackageName(), 0);
+            title = title + "  v" + packageInfo.versionName;
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
         }
-        return super.onOptionsItemSelected(item);
+
+        final AlertDialog.Builder aboutDialog =
+                new AlertDialog.Builder(this);
+        aboutDialog.setTitle(title);
+        aboutDialog.setMessage(Constant.About);
+        aboutDialog.setPositiveButton(R.string.ok,
+                (dialog, which) -> {
+
+                });
+        aboutDialog.setNegativeButton(R.string.source_code, (dialog, which) -> {
+            Uri uri = Uri.parse(Constant.SourceCodeUrl);
+            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+            startActivity(intent);
+        });
+        aboutDialog.show();
     }
 
-
-    public void onStartStopClick(View view) {
-        AnimatedVectorDrawable drawable = (AnimatedVectorDrawable) ((ImageButton)view).getDrawable();
-
-        if (isPlaying) {
-            metronome.pause();
-            isPlaying = false;
-            drawable.reset();
-            ObjectAnimator.ofFloat(view, "translationX", 400, 0)
-                    .setDuration(500).start();
-            ObjectAnimator.ofFloat(timerBar, "alpha", 1f, 0f)
-                    .setDuration(400).start();
-        } else {
-            updateStatusBar(0, 0);
-            metronome.play();
-            isPlaying = true;
-            drawable.start();
-
-            ObjectAnimator.ofFloat(view, "translationX", 0, 400)
-                    .setDuration(500).start();
-
-            ObjectAnimator.ofFloat(timerBar, "alpha", 0f, 1f)
-                    .setDuration(400).start();
-
-            updateTimerBar();
-            startTime = System.currentTimeMillis();
-        }
-    }
 
     @Override
     protected void onResume() {
@@ -315,31 +265,5 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         profile.setKeepScreen(isKeepScreen);
         metronome.close();
-    }
-
-    private void showAbout() {
-        String title = getString(R.string.app_name);
-        PackageManager pm = getPackageManager();
-        try {
-            PackageInfo packageInfo = pm.getPackageInfo(getPackageName(), 0);
-            title = title + "  v" + packageInfo.versionName;
-        } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        final AlertDialog.Builder aboutDialog =
-                new AlertDialog.Builder(MainActivity.this);
-        aboutDialog.setTitle(title);
-        aboutDialog.setMessage(Constant.About);
-        aboutDialog.setPositiveButton(R.string.ok,
-                (dialog, which) -> {
-
-                });
-        aboutDialog.setNegativeButton(R.string.source_code, (dialog, which) -> {
-            Uri uri = Uri.parse(Constant.SourceCodeUrl);
-            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-            startActivity(intent);
-        });
-        aboutDialog.show();
     }
 }

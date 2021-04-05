@@ -11,24 +11,11 @@ public class AudioData {
     private final String name;
 
     private boolean isLoaded = false;
-    private boolean isSingle = false;
 
     public AudioData(String name, String upbeatPath, String downbeatPath) {
         this.name = name;
         this.upbeatPath = upbeatPath;
         this.downbeatPath = downbeatPath;
-        isSingle = false;
-    }
-
-    public AudioData(String name, String path) {
-        this.name = name;
-        this.upbeatPath = path;
-        this.downbeatPath = path;
-        isSingle = true;
-    }
-
-    public boolean isSingle() {
-        return isSingle;
     }
 
     public byte[] getUpbeat() {

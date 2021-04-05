@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,9 +30,11 @@ public class AudioManager {
     public AudioManager(Context context) {
         mContext = context;
         putAudio(Constant.AudioDefault, "audios/upbeat.wav", "audios/downbeat.wav");
-        putAudio(Constant.AudioClap, "audios/downbeat.wav", "audios/upbeat.wav");
-        putAudio(Constant.AudioClaves, "audios/downbeat.wav", "audios/upbeat.wav");
-        putAudio(Constant.AudioRimshot, "audios/downbeat.wav", "audios/upbeat.wav");
+
+        putAudio(Constant.AudioBassDrum, "audios/BassDrum1.wav", "audios/BassDrum2.wav");
+        putAudio(Constant.AudioClap, "audios/Clap1.wav", "audios/Clap2.wav");
+        putAudio(Constant.AudioClaves, "audios/Claves1.wav", "audios/Claves2.wav");
+        putAudio(Constant.AudioRimshot, "audios/Rimshot1.wav", "audios/Rimshot2.wav");
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -58,12 +59,8 @@ public class AudioManager {
         }
         if (!audioData.isLoaded()) {
             byte[] upbeat = LoadData(audioData.getUpbeatPath());
-            if (audioData.isSingle()) {
-                audioData.setBeat(upbeat);
-            } else {
-                byte[] downbeat = LoadData(audioData.getDownbeatPath());
-                audioData.setBeat(upbeat, downbeat);
-            }
+            byte[] downbeat = LoadData(audioData.getDownbeatPath());
+            audioData.setBeat(upbeat, downbeat);
         }
         return audioData;
     }
