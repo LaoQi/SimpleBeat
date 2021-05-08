@@ -10,4 +10,7 @@
     <string name="ok">确定</string>
     <string name="keep_screen_on">打开屏幕常亮</string>
     <string name="keep_screen_off">关闭屏幕常亮</string>
+    <string name="sound_booster">音量增强</string>
+    <string name="sound_booster_on">打开音量增强</string>
+    <string name="sound_booster_off">关闭音量增强</string>
 </resources>
