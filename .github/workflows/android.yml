@@ -16,12 +16,9 @@ jobs:
     - name: set up JDK 21
       uses: actions/setup-java@v4
       with:
-        distribution: 'oracle'
+        distribution: 'temurin'
         java-version: '21'
         cache: 'gradle'
-        cache-dependency-path: | # optional
-          sub-project/*.gradle*
-          sub-project/**/gradle-wrapper.properties
     - name: Set Version
       id: set_version
       run: echo 'app_version=v1.'`git rev-list HEAD --count` >> "$GITHUB_OUTPUT"
