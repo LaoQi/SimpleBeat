@@ -15,4 +15,6 @@
     <string name="sound_booster">Sound Booster</string>
     <string name="sound_booster_on">Sound Booster On</string>
     <string name="sound_booster_off">Sound Booster Off</string>
+    <string name="timer_setting">Set Timer</string>
+    <string name="cancel">Cancel</string>
 </resources>

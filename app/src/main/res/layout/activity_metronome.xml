@@ -47,6 +47,7 @@
             app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@android:drawable/ic_dialog_dialer"
             tools:srcCompat="@android:drawable/ic_dialog_dialer" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.madao.simplebeat.BpmPicker
@@ -57,7 +58,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.529"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/StatusBar"></com.madao.simplebeat.BpmPicker>
+        app:layout_constraintTop_toBottomOf="@+id/StatusBar" />
 
     <com.madao.simplebeat.AudioSelector
         android:id="@+id/AudioSelector"

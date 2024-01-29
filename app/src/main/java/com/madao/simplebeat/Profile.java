@@ -12,6 +12,8 @@ public class Profile {
     private final static String KeyKeepScreen = "KeepScreen";
     private final static String KeySoundBooster = "SoundBooster";
 
+    private final static String KeyTimer = "Timer";
+
     private final SharedPreferences preferences;
 
     public Profile(Context context) {
@@ -26,6 +28,8 @@ public class Profile {
     }
     public boolean getKeepScreen() { return preferences.getBoolean(KeyKeepScreen, false); }
     public boolean getSoundBooster() { return preferences.getBoolean(KeySoundBooster, false); }
+
+    public int getTimer() { return preferences.getInt(KeyTimer, 0); }
 
     private void setValue(String key, String value) {
         SharedPreferences.Editor editor = preferences.edit();
@@ -60,4 +64,6 @@ public class Profile {
     public void setSoundBooster(boolean value) {
         setValue(KeySoundBooster, value);
     }
+
+    public void setTimer(int value) { setValue(KeyTimer, value);}
 }

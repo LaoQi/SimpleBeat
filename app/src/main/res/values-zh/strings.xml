@@ -13,4 +13,6 @@
     <string name="sound_booster">音量增强</string>
     <string name="sound_booster_on">打开音量增强</string>
     <string name="sound_booster_off">关闭音量增强</string>
+    <string name="timer_setting">设置定时器</string>
+    <string name="cancel">取消</string>
 </resources>

@@ -14,6 +14,7 @@ import android.view.Menu;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageButton;
+import android.widget.NumberPicker;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -26,7 +27,7 @@ import java.io.IOException;
 public class MetronomeActivity extends AppCompatActivity {
 
     enum MenusType {
-        MenuStatusBar, MenuKeepScreen, MenuSoundBooster, MenuAbout
+        MenuStatusBar, MenuKeepScreen, MenuSoundBooster, MenuTimerSetting, MenuAbout
     }
 
     private Metronome metronome;
@@ -40,6 +41,8 @@ public class MetronomeActivity extends AppCompatActivity {
     private TextView statusBar;
     private TextView timerBar;
     private long startTime;
+
+    private long timeCounter = 0;
     private Handler mHandler;
 
     @Override
@@ -128,6 +131,24 @@ public class MetronomeActivity extends AppCompatActivity {
 
     @SuppressLint({"DefaultLocale", "SetTextI18n"})
     public void updateTimerBar() {
+        if (timeCounter > 0) {
+            long lastTime = timeCounter;
+            if (isPlaying) {
+                long pass = System.currentTimeMillis() - startTime;
+                lastTime -= pass;
+
+                if (lastTime <= 0) {
+                    lastTime = 0;
+                    stop();
+                }
+            }
+
+            long minutes = lastTime / 60000;
+            long seconds = (lastTime % 60000) / 1000;
+            long milliseconds = lastTime % 1000;
+            timerBar.setText(String.format("%d : %02d.%03d", minutes, seconds, milliseconds));
+            return;
+        }
         long ts = System.currentTimeMillis() - startTime;
         long minutes = ts / 60000;
         long seconds = (ts % 60000) / 1000;
@@ -162,12 +183,13 @@ public class MetronomeActivity extends AppCompatActivity {
         profile.setSoundBooster(soundBooster);
     }
 
-    private void play() {
+    private void stop() {
         ImageButton view = findViewById(R.id.startButton);
         AnimatedVectorDrawable drawable = (AnimatedVectorDrawable) (view).getDrawable();
         float right = Math.min(timerBar.getRight() + 20, getWindow().getDecorView().getWidth()/2 - (view.getWidth()/2));
         metronome.pause();
         isPlaying = false;
+        timeCounter = 0;
         drawable.reset();
         ObjectAnimator.ofFloat(view, "translationX", right, 0)
                 .setDuration(500).start();
@@ -175,28 +197,47 @@ public class MetronomeActivity extends AppCompatActivity {
                 .setDuration(400).start();
     }
 
-    private void stop() {
+    private void play() {
         ImageButton view = findViewById(R.id.startButton);
         AnimatedVectorDrawable drawable = (AnimatedVectorDrawable) (view).getDrawable();
-        float right = Math.min(timerBar.getRight() + 20, getWindow().getDecorView().getWidth()/2 - (view.getWidth()/2));
         updateStatusBar(0, 0);
         metronome.play();
         isPlaying = true;
         drawable.start();
+
+        if (timeCounter == 0) {
+            // has timer
+            float right = Math.min(timerBar.getRight() + 20, getWindow().getDecorView().getWidth() / 2 - (view.getWidth() / 2));
+            ObjectAnimator.ofFloat(view, "translationX", 0, right)
+                    .setDuration(500).start();
+        }
+
+        ObjectAnimator.ofFloat(timerBar, "alpha", 0f, 1f)
+                .setDuration(400).start();
+        startTime = System.currentTimeMillis();
+        updateTimerBar();
+    }
+
+    private void setTimerOn(int minutes, int seconds) {
+        ImageButton view = findViewById(R.id.startButton);
+        float right = Math.min(timerBar.getRight() + 20, getWindow().getDecorView().getWidth()/2 - (view.getWidth()/2));
+        updateStatusBar(0, 0);
         ObjectAnimator.ofFloat(view, "translationX", 0, right)
                 .setDuration(500).start();
 
         ObjectAnimator.ofFloat(timerBar, "alpha", 0f, 1f)
                 .setDuration(400).start();
+        timeCounter = (minutes * 60L + seconds) * 1000;
+
         updateTimerBar();
-        startTime = System.currentTimeMillis();
     }
+
 
     public void onStartStopClick(View view) {
         if (isPlaying) {
-            play();
-        } else {
             stop();
+        } else {
+            play();
         }
     }
 
@@ -204,21 +245,16 @@ public class MetronomeActivity extends AppCompatActivity {
         PopupMenu popupMenu = new PopupMenu(this, view);
         popupMenu.setOnMenuItemClickListener(item -> {
             switch (MenusType.values()[item.getItemId()]) {
-                case MenuStatusBar:
+                case MenuStatusBar -> {
                     showStatusBar = !showStatusBar;
                     statusBar.setVisibility(showStatusBar ? View.VISIBLE : View.INVISIBLE);
-                    break;
-                case MenuKeepScreen:
-                    toggleKeepScreen();
-                    break;
-                case MenuSoundBooster:
-                    toggleSoundBooster();
-                    break;
-                case MenuAbout:
-                    showAbout();
-                    break;
-                default:
-                    throw new IllegalStateException("Unexpected value: " + MenusType.values()[item.getItemId()]);
+                }
+                case MenuKeepScreen -> toggleKeepScreen();
+                case MenuSoundBooster -> toggleSoundBooster();
+                case MenuTimerSetting -> showTimerSetting();
+                case MenuAbout -> showAbout();
+                default ->
+                        throw new IllegalStateException("Unexpected value: " + MenusType.values()[item.getItemId()]);
             }
             return true;
         });
@@ -242,6 +278,8 @@ public class MetronomeActivity extends AppCompatActivity {
         } else {
             menu.add(1, MenusType.MenuSoundBooster.ordinal(), 1, R.string.sound_booster_on);
         }
+
+        menu.add(1, MenusType.MenuTimerSetting.ordinal(), 1, R.string.timer_setting);
 
         menu.add(1, MenusType.MenuAbout.ordinal(), 1, R.string.about);
         popupMenu.show();
@@ -273,6 +311,37 @@ public class MetronomeActivity extends AppCompatActivity {
         aboutDialog.show();
     }
 
+    private void showTimerSetting() {
+        String title = getString(R.string.timer_setting);
+
+        final AlertDialog.Builder timeDialog =
+                new AlertDialog.Builder(this);
+        timeDialog.setTitle(title);
+
+        View selector = View.inflate(this, R.layout.time_selector, null);
+        timeDialog.setView(selector);
+
+        final NumberPicker minutesPicker = selector.findViewById(R.id.timer_picker_minutes);
+        final NumberPicker secondsPicker = selector.findViewById(R.id.timer_picker_seconds);
+
+        minutesPicker.setMaxValue(120);
+        minutesPicker.setMinValue(0);
+
+        secondsPicker.setMaxValue(59);
+        secondsPicker.setMinValue(0);
+
+        timeDialog.setPositiveButton(R.string.ok,
+                (dialog, which) -> {
+                    int minutes = minutesPicker.getValue();
+                    int seconds = secondsPicker.getValue();
+                    if (minutes > 0 || seconds > 0) {
+                        setTimerOn(minutes, seconds);
+                    }
+                });
+        timeDialog.setNegativeButton(R.string.cancel, (dialog, which) -> { });
+
+        timeDialog.show();
+    }
 
     @Override
     protected void onResume() {
