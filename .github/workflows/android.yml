@@ -24,7 +24,7 @@ jobs:
           sub-project/**/gradle-wrapper.properties
     - name: Set Version
       id: set_version
-      run: echo 'app_version=v1.'`git rev-list HEAD --count` >> "$GITHUB_ENV"
+      run: echo 'app_version=v1.'`git rev-list HEAD --count` >> "$GITHUB_OUTPUT"
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     - name: Build with Gradle
@@ -35,8 +35,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ $app_version }}
-        release_name: Release ${{ $app_version }}
+        tag_name: ${{ $steps.set_version.outputs.app_version }}
+        release_name: Release ${{ $steps.set_version.outputs.app_version }}
         draft: false
         prerelease: false
     - name: Upload Release Asset
@@ -47,5 +47,5 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
         asset_path: ./app/build/outputs/apk/release/app-release.apk
-        asset_name: simplebeat-${{ $app_version }}.apk
+        asset_name: simplebeat-${{ $steps.set_version.outputs.app_version }}.apk
         asset_content_type: application/zip
