@@ -72,18 +72,19 @@ public class MetronomeActivity extends AppCompatActivity {
         initBpmPicker();
         initAudioSelector();
         initTimerBar();
+    }
 
-        if (metronome != null && metronome.isAlive()) {
-            metronome.close();
-        }
+    private void resetMetronome() {
+//        isPlaying = false;
+//        ImageButton view = findViewById(R.id.startButton);
+//        ((AnimatedVectorDrawable) (view).getDrawable()).reset();
 
         metronome = new Metronome(mHandler);
         metronome.setBpm(profile.getBPM());
         metronome.setBooster(soundBooster);
         metronome.start();
         updateAudio(profile.getAudioKey());
-        ImageButton view = findViewById(R.id.startButton);
-        ((AnimatedVectorDrawable) (view).getDrawable()).reset();
+        stop();
     }
 
     private void initTimerBar() {
@@ -349,6 +350,7 @@ public class MetronomeActivity extends AppCompatActivity {
         if (isKeepScreen) {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         }
+        resetMetronome();
     }
 
     @Override
@@ -358,6 +360,7 @@ public class MetronomeActivity extends AppCompatActivity {
         if (isKeepScreen) {
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         }
+        metronome.close();
     }
 
     @Override
