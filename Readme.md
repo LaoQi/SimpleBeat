@@ -1,19 +1,22 @@
-# 简单的节拍器 SimpleBeat 
+# SimpleBeat 
 
-最近发现android上没有找到好用的节拍器，多半有广告或者要求各类权限。有几个开源项目看起来不错，但是节拍不准，于是决定自己写一个。
+[中文说明](https://github.com/LaoQi/SimpleBeat/blob/main/Readme_zh.md)
 
-<B>这个项目将会维护到我更换手机或者彻底放弃吉他为止。</B>
+SimpleBeat is a simple metronome app that I recently discovered was not well-implemented on Android, as most of them contain advertisements or request various permissions. While several open-source projects seemed promising, the metronome accuracy was not ideal. Therefore, I have decided to develop my own metronome app.
 
-[这里下载](https://github.com/LaoQi/SimpleBeat/releases)
+Download link: [click here](https://github.com/LaoQi/SimpleBeat/releases)
 
-### 节拍准确性
+### Screenshot
 
-参考了几个开源项目，节拍器实现的方式多半通过计时器延时播放音频，这种模式会对准确度造成很大影响，每次调用播放音频加上下次调用计时器的开销，每拍即使只有几毫秒延迟，几百拍下来就会有非常明显的误差。
+![screenshot](screenshot/Screenshot.png)
 
-这个项目采用的方式是提前构造一段固定的音频，比如BPM为120（即每分钟120拍），假设采用4/4拍则四个节拍为一组生成，通过`AudioTrack`以流的形式持续写入播放，目前看起来效果还可以。
+### Metronome Accuracy:
+After referencing several open-source projects, I found that most metronome implementations use timers to delay and play audio, which significantly affects accuracy due to the overhead of calling the audio playback and the next timer. Even with a delay of just a few milliseconds per beat, it can accumulate significant errors over hundreds of beats.
+
+This project's approach is to pre-generate a fixed segment of audio, such as a BPM of 120 (i.e., 120 beats per minute). Assuming 4/4 time signature, four beats are generated as a group and continuously written and played in a streaming form through AudioTrack. At present, this approach seems to produce satisfactory results.
 
 ```
-# 测试数据，模拟器环境 2840拍累积1420017ms，20分钟累积误差在50ms内。
+# Test data, emulator environment: 2840 beats accumulated in 1420017ms, with errors within 50ms over 20 minutes.
 2021-03-31 11:56:04.029 delta 1350004 count 2700
 2021-03-31 11:56:14.037 delta 1360012 count 2720
 2021-03-31 11:56:24.041 delta 1370017 count 2740
@@ -24,22 +27,12 @@
 2021-03-31 11:57:14.042 delta 1420017 count 2840
 ```
 
+### Features Implemented:
+- Play metronome beats
+- Adjust BPM
+- Settings , keep screen on
+- Various sound effects (from unknown sources, 808 drum machine samples)
+- Volume boost
 
-
-### 已经实现的
-
-* 播放节拍
-* 调整BPM
-* 设置界面，常亮
-* 多种音效 （来自不知道从哪里找的 808鼓机采样）
-* 音量增强
-
-### TODO
-
-* 支持其他节拍 (没用过，等我用上再说)
-* 有时间加上吉他调音功能
-
-### 参考项目
-
-生成音频 [https://github.com/MasterEx/BeatKeeper.git](https://github.com/MasterEx/BeatKeeper.git)
-本来想直接用这个项目的，结果太老了，而且仔细阅读源码后发现生成的还是单拍形式播放。
+### To-do List:
+- Add guitar tuning function when time allows.

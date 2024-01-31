@@ -153,6 +153,9 @@ public class Metronome extends Thread {
 	}
 
 	public void close() {
+		if (quit) {
+			return;
+		}
 		playing = false;
 		audioTrack.stop();
 		audioTrack.release();

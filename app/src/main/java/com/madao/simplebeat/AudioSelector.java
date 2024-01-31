@@ -91,12 +91,12 @@ public class AudioSelector extends ConstraintLayout {
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             TextView textView = holder.itemView.findViewById(R.id.audioSelectorItemName);
-            textView.setText(audioList.get(position));
-            textView.setOnClickListener(v -> onClickItem(v, position));
-            if (position == originPosition) {
+            textView.setText(audioList.get(holder.getAdapterPosition()));
+            textView.setOnClickListener(v -> onClickItem(v, holder.getAdapterPosition()));
+            if (holder.getAdapterPosition() == originPosition) {
                 highlight(textView);
                 lastItem = textView;
-                selectedPosition = position;
+                selectedPosition = holder.getAdapterPosition();
             }
         }
 
