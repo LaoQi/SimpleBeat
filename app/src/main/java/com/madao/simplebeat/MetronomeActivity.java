@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.WindowManager;
@@ -19,12 +20,15 @@ import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.IOException;
 
 public class MetronomeActivity extends AppCompatActivity {
+
+    private final String Tag = "MetronomeActivity";
 
     enum MenusType {
         MenuStatusBar, MenuKeepScreen, MenuSoundBooster, MenuTimerSetting, MenuAbout
@@ -75,9 +79,6 @@ public class MetronomeActivity extends AppCompatActivity {
     }
 
     private void resetMetronome() {
-//        isPlaying = false;
-//        ImageButton view = findViewById(R.id.startButton);
-//        ((AnimatedVectorDrawable) (view).getDrawable()).reset();
 
         metronome = new Metronome(mHandler);
         metronome.setBpm(profile.getBPM());
@@ -98,7 +99,7 @@ public class MetronomeActivity extends AppCompatActivity {
                     //noinspection BusyWait
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    Log.w(Tag, e.toString(), e);
                 }
             }
         }).start();
@@ -164,7 +165,7 @@ public class MetronomeActivity extends AppCompatActivity {
             metronome.setDownbeat(audioData.getDownbeat());
             profile.setAudioKey(selected);
         } catch (AudioManager.AudioDataNotFound | IOException exception) {
-            exception.printStackTrace();
+            Log.w(Tag, exception.toString(), exception);
             Toast.makeText(this, exception.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
@@ -243,22 +244,7 @@ public class MetronomeActivity extends AppCompatActivity {
     }
 
     public void showMenu(View view) {
-        PopupMenu popupMenu = new PopupMenu(this, view);
-        popupMenu.setOnMenuItemClickListener(item -> {
-            switch (MenusType.values()[item.getItemId()]) {
-                case MenuStatusBar -> {
-                    showStatusBar = !showStatusBar;
-                    statusBar.setVisibility(showStatusBar ? View.VISIBLE : View.INVISIBLE);
-                }
-                case MenuKeepScreen -> toggleKeepScreen();
-                case MenuSoundBooster -> toggleSoundBooster();
-                case MenuTimerSetting -> showTimerSetting();
-                case MenuAbout -> showAbout();
-                default ->
-                        throw new IllegalStateException("Unexpected value: " + MenusType.values()[item.getItemId()]);
-            }
-            return true;
-        });
+        PopupMenu popupMenu = getPopupMenu(view);
 
         Menu menu = popupMenu.getMenu();
         menu.clear();
@@ -286,6 +272,27 @@ public class MetronomeActivity extends AppCompatActivity {
         popupMenu.show();
     }
 
+    @NonNull
+    private PopupMenu getPopupMenu(View view) {
+        PopupMenu popupMenu = new PopupMenu(this, view);
+        popupMenu.setOnMenuItemClickListener(item -> {
+            switch (MenusType.values()[item.getItemId()]) {
+                case MenuStatusBar -> {
+                    showStatusBar = !showStatusBar;
+                    statusBar.setVisibility(showStatusBar ? View.VISIBLE : View.INVISIBLE);
+                }
+                case MenuKeepScreen -> toggleKeepScreen();
+                case MenuSoundBooster -> toggleSoundBooster();
+                case MenuTimerSetting -> showTimerSetting();
+                case MenuAbout -> showAbout();
+                default ->
+                        throw new IllegalStateException("Unexpected value: " + MenusType.values()[item.getItemId()]);
+            }
+            return true;
+        });
+        return popupMenu;
+    }
+
     private void showAbout() {
         String title = getString(R.string.app_name);
         PackageManager pm = getPackageManager();
@@ -293,7 +300,7 @@ public class MetronomeActivity extends AppCompatActivity {
             PackageInfo packageInfo = pm.getPackageInfo(getPackageName(), 0);
             title = title + "  v" + packageInfo.versionName;
         } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
+            Log.w(Tag, e.toString(), e);
         }
 
         final AlertDialog.Builder aboutDialog =
@@ -342,6 +349,12 @@ public class MetronomeActivity extends AppCompatActivity {
         timeDialog.setNegativeButton(R.string.cancel, (dialog, which) -> { });
 
         timeDialog.show();
+    }
+
+    public void showTuner(View view) {
+        Intent intent = new Intent();
+        intent.setClass(view.getContext(), TunerActivity.class);
+        startActivity(intent);
     }
 
     @Override

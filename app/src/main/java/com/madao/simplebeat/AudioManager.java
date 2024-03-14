@@ -40,8 +40,6 @@ public class AudioManager {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private byte[] LoadData(String path) throws IOException {
         InputStream in = mContext.getAssets().open(path);
-//        byte[] header = new byte[Constant.WavHeaderSize];
-//        in.read(header);
         in.skip(Constant.WavHeaderSize);
 
         byte[] buffer = new byte[1024];

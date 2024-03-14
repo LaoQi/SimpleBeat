@@ -1,5 +1,6 @@
 package com.madao.simplebeat;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Handler;
 import android.util.AttributeSet;
@@ -64,7 +65,7 @@ public class AudioSelector extends ConstraintLayout {
             }
         }
 
-        protected void onClickItem(View view, int position) {
+        private void onClickItem(View view, int position) {
             if (selectedPosition == position) {
                 return;
             }
@@ -78,12 +79,14 @@ public class AudioSelector extends ConstraintLayout {
             listener.onValueChange(lastPosition, position);
         }
 
-        protected void highlight(View view) {
+        @SuppressLint("UseCompatLoadingForDrawables")
+        private void highlight(View view) {
             view.setBackground(mContext.getDrawable(R.drawable.audio_item_checked_shape));
             ((TextView) view).setTextColor(mContext.getColor(R.color.blue_700));
         }
 
-        protected void resetItem(View view) {
+        @SuppressLint("UseCompatLoadingForDrawables")
+        private void resetItem(View view) {
             view.setBackground(mContext.getDrawable(R.drawable.audio_item_normal_shape));
             ((TextView) view).setTextColor(mContext.getColor(R.color.gray_300));
         }

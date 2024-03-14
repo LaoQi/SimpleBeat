@@ -9,6 +9,7 @@ import android.util.Log;
 import java.util.Arrays;
 
 public class Metronome extends Thread {
+	private final String Tag = "Metronome";
 	private AudioTrack audioTrack;
 	private boolean playing = false;
 	private boolean quit = false;
@@ -28,7 +29,7 @@ public class Metronome extends Thread {
 
 	private byte[] upbeat;
 	private byte[] downbeat;
-	
+
 	public Metronome(Handler handler) {
 		setDaemon(true);
 		this.mHandler = handler;
@@ -133,7 +134,7 @@ public class Metronome extends Thread {
 				try {
 					Thread.sleep(10);
 				} catch (InterruptedException e) {
-					e.printStackTrace();
+					Log.w(Tag, e.toString(), e);
 				}
 			}
 		}

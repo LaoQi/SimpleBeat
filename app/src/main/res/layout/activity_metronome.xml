@@ -36,6 +36,19 @@
         </TextView>
 
         <ImageView
+            android:id="@+id/Tuner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/tuner"
+            android:onClick="showTuner"
+            android:scaleX="0.7"
+            android:scaleY="0.7"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="@+id/TicksCounter"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@android:drawable/ic_popup_reminder" />
+
+        <ImageView
             android:id="@+id/Menu"
             android:layout_width="24dp"
             android:layout_height="32dp"

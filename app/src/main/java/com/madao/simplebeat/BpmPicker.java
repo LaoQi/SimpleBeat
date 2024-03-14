@@ -25,7 +25,7 @@ public class BpmPicker extends RecyclerView {
 
     public interface OnValueChangeListener {
         void onValueChange(int oldValue, int newValue);
-    };
+    }
 
     public void setValue(int v) {
         mValue = v;
@@ -51,14 +51,15 @@ public class BpmPicker extends RecyclerView {
         Construct(context);
     }
 
-    private final RecyclerView.Adapter<RecyclerView.ViewHolder> adapter = new RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    private final RecyclerView.Adapter<RecyclerView.ViewHolder> adapter = new RecyclerView.Adapter<>() {
 
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.bpm_picker_item, parent, false);
             v.getLayoutParams().width = parent.getWidth() / 3;
-            return new RecyclerView.ViewHolder(v) {};
+            return new RecyclerView.ViewHolder(v) {
+            };
         }
 
         @SuppressLint("SetTextI18n")

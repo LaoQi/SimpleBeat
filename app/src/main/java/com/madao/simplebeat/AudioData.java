@@ -1,7 +1,5 @@
 package com.madao.simplebeat;
 
-import androidx.annotation.NonNull;
-
 public class AudioData {
     private byte[] upbeat;
     private byte[] downbeat;
