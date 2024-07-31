@@ -9,7 +9,7 @@ import android.util.Log;
 import java.util.Arrays;
 
 public class Metronome extends Thread {
-	private final String Tag = "Metronome";
+	private final static String Tag = "Metronome";
 	private AudioTrack audioTrack;
 	private boolean playing = false;
 	private boolean quit = false;

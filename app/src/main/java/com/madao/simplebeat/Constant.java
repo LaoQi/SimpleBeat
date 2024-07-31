@@ -15,4 +15,6 @@ public class Constant {
     public final static String AudioClap = "Clap";
     public final static String AudioClaves = "Claves";
     public final static String AudioRimshot = "Rimshot";
+
+    public final static String TimeBarFont = "fonts/Roboto-Medium.ttf";
 }

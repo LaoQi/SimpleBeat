@@ -12,12 +12,13 @@
         android:theme="@style/Theme.Metronome">
         <activity
             android:name=".TunerActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:taskAffinity="${applicationId}" />
         <activity
             android:name=".MetronomeActivity"
             android:configChanges="orientation"
             android:exported="true"
-            android:screenOrientation="portrait"
+            android:taskAffinity="${applicationId}"
             tools:ignore="LockedOrientationActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

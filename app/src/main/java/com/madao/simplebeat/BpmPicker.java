@@ -2,6 +2,7 @@ package com.madao.simplebeat;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Color;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -9,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -66,7 +68,6 @@ public class BpmPicker extends RecyclerView {
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             TextView textView = holder.itemView.findViewById(R.id.BpmPickerItem);
-
             if (position > 0 && position < MaxBPM - MinBPM + 2) {
                 textView.setText("" + (position + MinBPM - 1));
             } else {
@@ -76,13 +77,15 @@ public class BpmPicker extends RecyclerView {
 
         @Override
         public int getItemCount() {
-            return MaxBPM - MinBPM + 3;
+            return MaxBPM - MinBPM;
+//            return MaxBPM - MinBPM + 3;
         }
     };
 
     private void Construct(Context context) {
         MinBPM = Constant.MinBPM;
         MaxBPM = Constant.MaxBPM;
+//        setBackgroundColor(Color.RED);
         layoutManager = new LinearLayoutManager(context);
         setLayoutManager(layoutManager);
         layoutManager.setOrientation(RecyclerView.HORIZONTAL);
@@ -96,6 +99,10 @@ public class BpmPicker extends RecyclerView {
             int position = layoutManager.findFirstVisibleItemPosition();
             View view = layoutManager.findViewByPosition(position);
             View center = layoutManager.findViewByPosition(position + 1);
+            if (view == null) {
+                Log.w("bruce", "Error view at " + position);
+                return;
+            }
             assert view != null;
             assert center != null;
 

@@ -2,6 +2,7 @@ package com.madao.simplebeat;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Color;
 import android.os.Handler;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
@@ -10,17 +11,15 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
-public class AudioSelector extends ConstraintLayout {
+public class AudioSelector extends RecyclerView {
 
     private Context mContext;
-    private RecyclerView mSelector;
-    private LinearLayoutManager linearLayoutManager;
+    private LinearLayoutManager layoutManager;
     private List<String> audioList;
     private OnValueChangeListener listener;
     private int originPosition;
@@ -57,11 +56,11 @@ public class AudioSelector extends ConstraintLayout {
         }
 
         public void scroll() {
-            int first = linearLayoutManager.findFirstVisibleItemPosition();
+            int first = layoutManager.findFirstVisibleItemPosition();
             if (first == selectedPosition && selectedPosition > 0) {
-                mSelector.smoothScrollToPosition(selectedPosition - 1);
+                smoothScrollToPosition(selectedPosition - 1);
             } else {
-                mSelector.smoothScrollToPosition(selectedPosition + 1);
+                smoothScrollToPosition(selectedPosition + 1);
             }
         }
 
@@ -111,17 +110,17 @@ public class AudioSelector extends ConstraintLayout {
 
     private void Construct(Context context) {
         mContext = context;
-        LayoutInflater.from(context).inflate(R.layout.audio_selector, this, true);
-        mSelector = findViewById(R.id.AudioList);
-        linearLayoutManager = new LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL,false);
-        mSelector.setLayoutManager(linearLayoutManager);
+//        setBackgroundColor(Color.BLUE);
+        layoutManager = new LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL,false);
+        setLayoutManager(layoutManager);
+        layoutManager.setOrientation(RecyclerView.HORIZONTAL);
+        setAdapter(adapter);
     }
 
     public void bindData(int position, List<String> list, OnValueChangeListener onValueChangeListener) {
         listener = onValueChangeListener;
         audioList = list;
         originPosition = position;
-        mSelector.setAdapter(adapter);
-        new Handler(mContext.getMainLooper()).postDelayed(() -> mSelector.smoothScrollToPosition(originPosition + 1), 100);
+        new Handler(mContext.getMainLooper()).postDelayed(() -> smoothScrollToPosition(originPosition + 1), 100);
     }
 }
