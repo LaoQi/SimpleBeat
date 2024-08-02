@@ -4,8 +4,6 @@ import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.res.AssetManager;
 import android.content.res.Configuration;
-import android.graphics.Color;
-import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -41,6 +39,12 @@ public class MetronomeActivity extends AppCompatActivity {
     private TextView timerBar;
     private ImageButton startButton;
     private ConstraintLayout timerAndPlay;
+    private TextView bpmButton;
+    private TextView audioSelectorButton;
+    private BpmPicker bpmPicker;
+    private AudioSelector audioSelector;
+    private View bpmAndAudioButtons;
+
     private long startTime;
 
     private long timeCounter = 0;
@@ -49,11 +53,21 @@ public class MetronomeActivity extends AppCompatActivity {
     private GestureDetector mGestureDetector;
     private Animator mAnimator;
 
+    private Typeface typeface;
+
+    enum StateType {
+        Normal, ShowBPM, ShowAudio
+    }
+
+    private StateType mState = StateType.Normal;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_metronome);
         setTitle("");
+        AssetManager mgr = getAssets();
+        typeface = Typeface.createFromAsset(mgr, Constant.CommonFont);
 
         GestureListener mGestureListener = new GestureListener();
         mGestureDetector = new GestureDetector(this, mGestureListener);
@@ -75,17 +89,19 @@ public class MetronomeActivity extends AppCompatActivity {
         });
 
         audioInitPosition = audioManager.getPosition(profile.getAudioKey());
+        mAnimator = new Animator(this);
 
         initBpmPicker();
         initAudioSelector();
         initTimerBar();
 
-        mAnimator = new Animator(this);
         startButton = findViewById(R.id.startButton);
         timerAndPlay = findViewById(R.id.TimerAndPlay);
+        bpmAndAudioButtons = findViewById(R.id.BpmAndAudioButtons);
 
-        mAnimator.setTimerBar(timerBar)
-                .setStartButton(startButton);
+        mAnimator.setStartButton(startButton)
+                .setTimeAndPlay(timerAndPlay)
+                .setBpmAndAudioButtons(bpmAndAudioButtons);
     }
 
     private void resizeWindow() {
@@ -114,7 +130,44 @@ public class MetronomeActivity extends AppCompatActivity {
         startButton.setMinimumWidth((int) unit * 2);
         startButton.setMaxWidth((int) unit * 2);
 
+        bpmAndAudioButtons.getLayoutParams().height = (int) (unit * 2);
 
+        bpmButton.setTextSize(TypedValue.COMPLEX_UNIT_PX, unit * 0.8f);
+        audioSelectorButton.setTextSize(TypedValue.COMPLEX_UNIT_PX, unit * 0.8f);
+
+        if (isCompact) {
+            Log.d(Tag, "Compact reset buttons");
+            ConstraintLayout.LayoutParams params1 = (ConstraintLayout.LayoutParams) bpmButton.getLayoutParams();
+            params1.horizontalBias = 0.1f;
+            bpmButton.setLayoutParams(params1);
+
+            ConstraintLayout.LayoutParams params2 = (ConstraintLayout.LayoutParams) audioSelectorButton.getLayoutParams();
+            params2.horizontalBias = 0.9f;
+            audioSelectorButton.setLayoutParams(params2);
+        }
+
+        bpmPicker.Resize(unit, isCompact, typeface);
+        audioSelector.Resize(unit, isCompact, typeface);
+    }
+
+    public void ChangeState(StateType state) {
+        if (mState == state) return;
+        switch (state) {
+            case Normal:
+                if (mState == StateType.ShowBPM) {
+                    mAnimator.HideBpmPicker();
+                } else {
+                    mAnimator.HideAudioSelector();
+                }
+                break;
+            case ShowBPM:
+                mAnimator.ShowBpmPicker();
+                break;
+            case ShowAudio:
+                mAnimator.ShowAudioSelector();
+                break;
+        }
+        mState = state;
     }
 
     @Override
@@ -122,16 +175,23 @@ public class MetronomeActivity extends AppCompatActivity {
         return mGestureDetector.onTouchEvent(event);
     }
 
-    private static class GestureListener extends GestureDetector.SimpleOnGestureListener {
+    private class GestureListener extends GestureDetector.SimpleOnGestureListener {
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             Log.d(Tag, "GestureListener onFling " + velocityX + " " + velocityY);
             return false;
         }
+
+        @Override
+        public boolean onDown(@NonNull MotionEvent e) {
+            if (mState != StateType.Normal) {
+                ChangeState(StateType.Normal);
+            }
+            return super.onDown(e);
+        }
     }
 
     private void resetMetronome() {
-
         metronome = new Metronome(mHandler);
         metronome.setBpm(profile.getBPM());
         metronome.setBooster(soundBooster);
@@ -143,10 +203,9 @@ public class MetronomeActivity extends AppCompatActivity {
     @SuppressLint("SetTextI18n")
     private void initTimerBar() {
         timerBar = findViewById(R.id.timerBar);
-        AssetManager mgr = getAssets();
-        Typeface tf = Typeface.createFromAsset(mgr, Constant.TimeBarFont);
-        timerBar.setTypeface(tf);
+        timerBar.setTypeface(typeface);
         timerBar.setText("00:00:00");
+        mAnimator.setTimerBar(timerBar);
         new Thread(() -> {
             while (true) {
                 if (isPlaying) {
@@ -162,19 +221,42 @@ public class MetronomeActivity extends AppCompatActivity {
         }).start();
     }
 
+    @SuppressLint("SetTextI18n")
     private void initBpmPicker() {
-        BpmPicker bpmPicker = findViewById(R.id.BpmPicker);
+        bpmPicker = findViewById(R.id.BpmPicker);
         bpmPicker.setValue(profile.getBPM());
+
+        bpmButton = findViewById(R.id.BpmPickerButton);
+        bpmButton.setTypeface(typeface);
+        bpmButton.setText("" + profile.getBPM());
 
         bpmPicker.setOnValueChangedListener((oldVal, newVal) -> {
             metronome.setBpm(newVal);
             profile.setBpm(newVal);
+            bpmButton.setText("" + newVal);
         });
+
+        bpmButton.setOnClickListener((view) -> {
+            ChangeState(StateType.ShowBPM);
+        });
+
+        mAnimator.setBpmPicker(bpmPicker)
+                .setBpmButton(bpmButton);
     }
 
     private void initAudioSelector() {
-        AudioSelector audioSelector = findViewById(R.id.AudioSelector);
+        audioSelector = findViewById(R.id.AudioSelector);
         audioSelector.bindData(audioInitPosition, audioManager.getAudioList(), (oldVal, newVal) -> updateAudio(audioManager.getAudioList().get(newVal)));
+
+        audioSelectorButton = findViewById(R.id.AudioSelectorButton);
+        audioSelectorButton.setTypeface(typeface);
+        audioSelectorButton.setText(profile.getAudioKey());
+        audioSelectorButton.setOnClickListener((view) -> {
+            ChangeState(StateType.ShowAudio);
+        });
+
+        mAnimator.setAudioSelector(audioSelector)
+                .setAudioSelectorButton(audioSelectorButton);
     }
 
     @SuppressLint({"DefaultLocale", "SetTextI18n"})
@@ -206,9 +288,9 @@ public class MetronomeActivity extends AppCompatActivity {
     public void updateAudio(String selected) {
         try {
             AudioData audioData = audioManager.getAudio(selected);
-            metronome.setUpbeat(audioData.getUpbeat());
-            metronome.setDownbeat(audioData.getDownbeat());
+            metronome.setAudioData(audioData);
             profile.setAudioKey(selected);
+            audioSelectorButton.setText(selected);
         } catch (AudioManager.AudioDataNotFound | IOException exception) {
             Log.w(Tag, exception.toString(), exception);
             Toast.makeText(this, exception.getMessage(), Toast.LENGTH_LONG).show();

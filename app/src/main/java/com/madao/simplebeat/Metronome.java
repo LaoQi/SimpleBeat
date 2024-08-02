@@ -27,8 +27,9 @@ public class Metronome extends Thread {
 	private long startTime;
 	private int tickCount;
 
-	private byte[] upbeat;
-	private byte[] downbeat;
+//	private byte[] upbeat;
+//	private byte[] downbeat;
+	private AudioData audioData;
 
 	public Metronome(Handler handler) {
 		setDaemon(true);
@@ -91,11 +92,11 @@ public class Metronome extends Thread {
 		wave = new byte[total];
 		Arrays.fill(wave, (byte)0);
 
-		byte[] beat1 = downbeat;
-		byte[] beat2 = upbeat;
+		byte[] beat1 = audioData.getDownbeat();
+		byte[] beat2 = audioData.getUpbeat();
 		if (booster) {
-			beat1 = soundBooster(downbeat);
-			beat2 = soundBooster(upbeat);
+			beat1 = soundBooster(beat1);
+			beat2 = soundBooster(beat2);
 		}
 
 		System.arraycopy(beat1, 0, wave, 0, Math.min(beat1.length, unit));
@@ -173,15 +174,19 @@ public class Metronome extends Thread {
 		this.notes = notes;
 	}
 
-	public void setUpbeat(byte[] upbeat) {
+	public void setAudioData(AudioData audioData) {
+		this.audioData = audioData;
 		this.changed = true;
-		this.upbeat = upbeat;
 	}
-
-	public void setDownbeat(byte[] downbeat) {
-		this.changed = true;
-		this.downbeat = downbeat;
-	}
+//	public void setUpbeat(byte[] upbeat) {
+//		this.changed = true;
+//		this.upbeat = upbeat;
+//	}
+//
+//	public void setDownbeat(byte[] downbeat) {
+//		this.changed = true;
+//		this.downbeat = downbeat;
+//	}
 
 	public void setBooster(boolean value) {
 		this.changed = true;
