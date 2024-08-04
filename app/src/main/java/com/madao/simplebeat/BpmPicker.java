@@ -30,7 +30,7 @@ public class BpmPicker extends RecyclerView {
     public void setValue(int v) {
         mValue = v;
         scrollToPosition(mValue - Constant.MinBPM);
-        layoutManager.setChildScale();
+        layoutManager.setChildScale(v);
     }
 
     public void setOnValueChangedListener(OnValueChangeListener listener) {
@@ -61,17 +61,22 @@ public class BpmPicker extends RecyclerView {
         scrollToPosition(mValue - Constant.MinBPM);
     }
 
-    public class BpmLayoutManager extends LinearLayoutManager {
+    public static class BpmLayoutManager extends LinearLayoutManager {
         public BpmLayoutManager(Context context) {
             super(context);
         }
 
-        public void setChildScale() {
+        public void setChildScale(int value) {
             for (int i = 0; i < getChildCount(); i++) {
                 View itemView = getChildAt(i);
                 if (itemView != null) {
-                    itemView.setScaleX(1);
-                    itemView.setScaleY(1);
+                    if (itemView.getTag().equals(value)) {
+                        itemView.setScaleX(2);
+                        itemView.setScaleY(2);
+                    } else {
+                        itemView.setScaleX(1);
+                        itemView.setScaleY(1);
+                    }
                 } else {
                     Log.d(Tag, "child null at " + i);
                 }
@@ -79,7 +84,7 @@ public class BpmPicker extends RecyclerView {
         }
     }
 
-    private static class RVAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+    private class RVAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         final private float unit;
         final private boolean compact;
@@ -102,22 +107,33 @@ public class BpmPicker extends RecyclerView {
                 v.getLayoutParams().width = (int) (unit * 3);
                 v.getLayoutParams().height = (int) (unit * 2);
             }
+
+            TextView textView = v.findViewById(R.id.BpmPickerItem);
+            if (typeface != null) {
+                textView.setTypeface(typeface);
+            }
+            textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, unit * 0.8f);
             return new RecyclerView.ViewHolder(v) {};
         }
 
         @SuppressLint("SetTextI18n")
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+            int bpm = position + Constant.MinBPM - 1;
             TextView textView = holder.itemView.findViewById(R.id.BpmPickerItem);
-            if (typeface != null) {
-                textView.setTypeface(typeface);
-            }
-            textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, unit * 0.8f);
             if (position > 0 && position < Constant.MaxBPM - Constant.MinBPM + 2) {
-                textView.setText("" + (position + Constant.MinBPM - 1));
+                textView.setText("" + bpm);
             } else {
                 textView.setText("");
             }
+            if (bpm == mValue) {
+                holder.itemView.setScaleX(2);
+                holder.itemView.setScaleY(2);
+            } else {
+                holder.itemView.setScaleX(1);
+                holder.itemView.setScaleY(1);
+            }
+            holder.itemView.setTag(bpm);
         }
 
         @Override
@@ -138,7 +154,7 @@ public class BpmPicker extends RecyclerView {
     @Override
     public void onScrollStateChanged(int state) {
         if (state == SCROLL_STATE_DRAGGING) {
-            layoutManager.setChildScale();
+            layoutManager.setChildScale(mValue);
         } else if(state == SCROLL_STATE_IDLE){
             int position = layoutManager.findFirstVisibleItemPosition();
             View view = layoutManager.findViewByPosition(position);
@@ -156,12 +172,9 @@ public class BpmPicker extends RecyclerView {
                 int newValue = position + Constant.MinBPM;
                 int oldValue = mValue;
                 mValue = newValue;
-
-                center.setScaleX(2);
-                center.setScaleY(2);
-
                 Log.d(Tag, "ValueChanged : old " + oldValue + " new " + newValue);
                 mOnValueChangeListener.onValueChange(mValue, newValue);
+                layoutManager.setChildScale(newValue);
             } else if(-offset < width / 2){
                 smoothScrollBy(offset, 0);
             }

@@ -55,7 +55,7 @@ public class MetronomeActivity extends AppCompatActivity {
 
     private Typeface typeface;
 
-    enum StateType {
+    public enum StateType {
         Normal, ShowBPM, ShowAudio
     }
 
@@ -114,7 +114,7 @@ public class MetronomeActivity extends AppCompatActivity {
         float unit;
         boolean isCompact = false;
         if (width < 600) {
-           unit = width / 8f;
+           unit = width / 9f;
            isCompact = true;
         } else {
             unit = width / 2f / 8f;
@@ -177,7 +177,7 @@ public class MetronomeActivity extends AppCompatActivity {
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
         @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        public boolean onFling(MotionEvent e1, @NonNull MotionEvent e2, float velocityX, float velocityY) {
             Log.d(Tag, "GestureListener onFling " + velocityX + " " + velocityY);
             return false;
         }
@@ -236,9 +236,7 @@ public class MetronomeActivity extends AppCompatActivity {
             bpmButton.setText("" + newVal);
         });
 
-        bpmButton.setOnClickListener((view) -> {
-            ChangeState(StateType.ShowBPM);
-        });
+        bpmButton.setOnClickListener((view) -> ChangeState(StateType.ShowBPM));
 
         mAnimator.setBpmPicker(bpmPicker)
                 .setBpmButton(bpmButton);
@@ -251,9 +249,7 @@ public class MetronomeActivity extends AppCompatActivity {
         audioSelectorButton = findViewById(R.id.AudioSelectorButton);
         audioSelectorButton.setTypeface(typeface);
         audioSelectorButton.setText(profile.getAudioKey());
-        audioSelectorButton.setOnClickListener((view) -> {
-            ChangeState(StateType.ShowAudio);
-        });
+        audioSelectorButton.setOnClickListener((view) -> ChangeState(StateType.ShowAudio));
 
         mAnimator.setAudioSelector(audioSelector)
                 .setAudioSelectorButton(audioSelectorButton);
