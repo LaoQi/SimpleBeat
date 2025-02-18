@@ -2,8 +2,10 @@ package com.madao.simplebeat;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,21 +17,20 @@ import androidx.recyclerview.widget.RecyclerView;
 
 public class BpmPicker extends RecyclerView {
 
+    private final static String Tag = "BpmPicker";
     private int mValue;
-    private int MinBPM;
-    private int MaxBPM;
-    private View lastView;
     private OnValueChangeListener mOnValueChangeListener;
 
-    private LinearLayoutManager layoutManager;
+    private BpmLayoutManager layoutManager;
 
     public interface OnValueChangeListener {
         void onValueChange(int oldValue, int newValue);
-    };
+    }
 
     public void setValue(int v) {
         mValue = v;
-        scrollToPosition(mValue - MinBPM);
+        scrollToPosition(mValue - Constant.MinBPM);
+        layoutManager.setChildScale(v);
     }
 
     public void setOnValueChangedListener(OnValueChangeListener listener) {
@@ -51,62 +52,129 @@ public class BpmPicker extends RecyclerView {
         Construct(context);
     }
 
-    private final RecyclerView.Adapter<RecyclerView.ViewHolder> adapter = new RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    public void Resize(float unit, boolean compact, Typeface typeface) {
+        if (!compact) {
+            getLayoutParams().width = (int) (unit * 9);
+            getLayoutParams().height = (int) (unit * 2);
+        }
+        setAdapter(new RVAdapter(unit, compact, typeface));
+        scrollToPosition(mValue - Constant.MinBPM);
+    }
+
+    public static class BpmLayoutManager extends LinearLayoutManager {
+        public BpmLayoutManager(Context context) {
+            super(context);
+        }
+
+        public void setChildScale(int value) {
+            for (int i = 0; i < getChildCount(); i++) {
+                View itemView = getChildAt(i);
+                if (itemView != null) {
+                    if (itemView.getTag().equals(value)) {
+                        itemView.setScaleX(2);
+                        itemView.setScaleY(2);
+                    } else {
+                        itemView.setScaleX(1);
+                        itemView.setScaleY(1);
+                    }
+                } else {
+                    Log.d(Tag, "child null at " + i);
+                }
+            }
+        }
+    }
+
+    private class RVAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+        final private float unit;
+        final private boolean compact;
+        final private Typeface typeface;
+
+        private RVAdapter(float unit, boolean compact, Typeface typeface) {
+            this.unit = unit;
+            this.compact = compact;
+            this.typeface = typeface;
+        }
 
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.bpm_picker_item, parent, false);
-            v.getLayoutParams().width = parent.getWidth() / 3;
+            if (compact) {
+                v.getLayoutParams().width = parent.getWidth() / 3;
+                v.getLayoutParams().height = (int) unit;
+            } else {
+                v.getLayoutParams().width = (int) (unit * 3);
+                v.getLayoutParams().height = (int) (unit * 2);
+            }
+
+            TextView textView = v.findViewById(R.id.BpmPickerItem);
+            if (typeface != null) {
+                textView.setTypeface(typeface);
+            }
+            textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, unit * 0.8f);
             return new RecyclerView.ViewHolder(v) {};
         }
 
         @SuppressLint("SetTextI18n")
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+            int bpm = position + Constant.MinBPM - 1;
             TextView textView = holder.itemView.findViewById(R.id.BpmPickerItem);
-
-            if (position > 0 && position < MaxBPM - MinBPM + 2) {
-                textView.setText("" + (position + MinBPM - 1));
+            if (position > 0 && position < Constant.MaxBPM - Constant.MinBPM + 2) {
+                textView.setText("" + bpm);
             } else {
                 textView.setText("");
             }
+            if (bpm == mValue) {
+                holder.itemView.setScaleX(2);
+                holder.itemView.setScaleY(2);
+            } else {
+                holder.itemView.setScaleX(1);
+                holder.itemView.setScaleY(1);
+            }
+            holder.itemView.setTag(bpm);
         }
 
         @Override
         public int getItemCount() {
-            return MaxBPM - MinBPM + 3;
+            return Constant.MaxBPM - Constant.MinBPM;
+//            return Constant.MaxBPM - Constant.MinBPM + 3;
         }
-    };
+    }
 
     private void Construct(Context context) {
-        MinBPM = Constant.MinBPM;
-        MaxBPM = Constant.MaxBPM;
-        layoutManager = new LinearLayoutManager(context);
+//        setBackgroundColor(Color.RED);
+        layoutManager = new BpmLayoutManager(context);
         setLayoutManager(layoutManager);
         layoutManager.setOrientation(RecyclerView.HORIZONTAL);
-        setAdapter(adapter);
+        setAdapter(new RVAdapter(64f, false, null));
     }
 
     @Override
     public void onScrollStateChanged(int state) {
-        Log.d("bruce","state:"+state);
-        if(state == 0){
+        if (state == SCROLL_STATE_DRAGGING) {
+            layoutManager.setChildScale(mValue);
+        } else if(state == SCROLL_STATE_IDLE){
             int position = layoutManager.findFirstVisibleItemPosition();
             View view = layoutManager.findViewByPosition(position);
             View center = layoutManager.findViewByPosition(position + 1);
-            assert view != null;
+            if (view == null) {
+                Log.w(Tag, "Error view at " + position);
+                return;
+            }
             assert center != null;
 
             int offset = view.getLeft();
             int width = view.getWidth();
 
             if(offset == 0) {
-                int newValue = position + MinBPM;
+                int newValue = position + Constant.MinBPM;
                 int oldValue = mValue;
                 mValue = newValue;
-                Log.d(getClass().getName(), "ValueChanged : old " + oldValue + " new " + newValue);
+                Log.d(Tag, "ValueChanged : old " + oldValue + " new " + newValue);
                 mOnValueChangeListener.onValueChange(mValue, newValue);
+                layoutManager.setChildScale(newValue);
             } else if(-offset < width / 2){
                 smoothScrollBy(offset, 0);
             }
@@ -116,17 +184,4 @@ public class BpmPicker extends RecyclerView {
         }
     }
 
-    @Override
-    public void onScrolled(int dx, int dy) {
-        int position = layoutManager.findFirstVisibleItemPosition();
-        View center = layoutManager.findViewByPosition(position + 1);
-        assert center != null;
-        if (lastView != null) {
-            lastView.setScaleX(1);
-            lastView.setScaleY(1);
-        }
-        lastView = center;
-        center.setScaleX(2);
-        center.setScaleY(2);
-    }
 }

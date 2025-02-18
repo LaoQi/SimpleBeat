@@ -8,7 +8,13 @@ Download link: [click here](https://github.com/LaoQi/SimpleBeat/releases)
 
 ### Screenshot
 
-![screenshot](screenshot/Screenshot.png)
+##### phone
+
+![screenshot](screenshot/Screenshot_20250219_010018.png)
+
+##### watch
+
+![screenshot](screenshot/Screenshot_20250219_005436.png)
 
 ### Metronome Accuracy:
 After referencing several open-source projects, I found that most metronome implementations use timers to delay and play audio, which significantly affects accuracy due to the overhead of calling the audio playback and the next timer. Even with a delay of just a few milliseconds per beat, it can accumulate significant errors over hundreds of beats.

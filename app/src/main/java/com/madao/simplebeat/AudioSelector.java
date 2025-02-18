@@ -1,28 +1,28 @@
 package com.madao.simplebeat;
 
 import android.content.Context;
-import android.os.Handler;
+import android.graphics.Typeface;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
-public class AudioSelector extends ConstraintLayout {
+public class AudioSelector extends RecyclerView {
 
-    private Context mContext;
-    private RecyclerView mSelector;
-    private LinearLayoutManager linearLayoutManager;
+    private AudioSelectorLayoutManager layoutManager;
     private List<String> audioList;
-    private OnValueChangeListener listener;
-    private int originPosition;
+    private OnValueChangeListener mOnValueChangeListener;
+    private final static String Tag = "AudioSelector";
+    private int mValue;
 
     public interface OnValueChangeListener {
         void onValueChange(int oldVal, int newVal);
@@ -43,82 +43,163 @@ public class AudioSelector extends ConstraintLayout {
         Construct(context);
     }
 
-    private final RecyclerView.Adapter<RecyclerView.ViewHolder> adapter = new RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-        private View lastItem;
-        private int selectedPosition = 0;
+    public void Resize(float unit, boolean compact, Typeface typeface) {
+        if (!compact) {
+            getLayoutParams().width = (int) (unit * 9);
+            getLayoutParams().height = (int) (unit * 3);
+        }
+        setAdapter(new RVAdapter(unit, compact, typeface));
+    }
+
+    private class RVAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+        final private float unit;
+        final private boolean compact;
+        final private Typeface typeface;
+
+        private RVAdapter(float unit, boolean compact, Typeface typeface) {
+            this.unit = unit;
+            this.compact = compact;
+            this.typeface = typeface;
+        }
 
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.audio_selector_item, parent, false);
-            v.getLayoutParams().width = parent.getWidth() / 3;
-            return new RecyclerView.ViewHolder(v) {};
-        }
-
-        public void scroll() {
-            int first = linearLayoutManager.findFirstVisibleItemPosition();
-            if (first == selectedPosition && selectedPosition > 0) {
-                mSelector.smoothScrollToPosition(selectedPosition - 1);
+            TextView tv = v.findViewById(R.id.audioSelectorItemName);
+            if (typeface != null) {
+                tv.setTypeface(typeface);
+            }
+            int w = (int) (unit * 3);
+            if (compact) {
+                w = parent.getWidth() / 3;
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, unit * 0.2f);
             } else {
-                mSelector.smoothScrollToPosition(selectedPosition + 1);
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, unit * 0.25f);
             }
-        }
 
-        protected void onClickItem(View view, int position) {
-            if (selectedPosition == position) {
-                return;
-            }
-            int lastPosition = selectedPosition;
-            selectedPosition = position;
-            scroll();
-            highlight(view);
-            resetItem(lastItem);
-
-            lastItem = view;
-            listener.onValueChange(lastPosition, position);
-        }
-
-        protected void highlight(View view) {
-            view.setBackground(mContext.getDrawable(R.drawable.audio_item_checked_shape));
-            ((TextView) view).setTextColor(mContext.getColor(R.color.blue_700));
-        }
-
-        protected void resetItem(View view) {
-            view.setBackground(mContext.getDrawable(R.drawable.audio_item_normal_shape));
-            ((TextView) view).setTextColor(mContext.getColor(R.color.gray_300));
+            v.getLayoutParams().width = w;
+            v.getLayoutParams().height = w;
+            tv.getLayoutParams().width = w/2;
+            tv.getLayoutParams().height = w/2;
+            return new RecyclerView.ViewHolder(v) {};
         }
 
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             TextView textView = holder.itemView.findViewById(R.id.audioSelectorItemName);
-            textView.setText(audioList.get(holder.getAdapterPosition()));
-            textView.setOnClickListener(v -> onClickItem(v, holder.getAdapterPosition()));
-            if (holder.getAdapterPosition() == originPosition) {
-                highlight(textView);
-                lastItem = textView;
-                selectedPosition = holder.getAdapterPosition();
+//            int audioIndex = holder.getAdapterPosition() % audioList.size();
+            int audioIndex = holder.getAdapterPosition() - 1;
+
+            // skip first & last
+            if (position < 1 || position > audioList.size()) {
+//                textView.setText("");
+                textView.setVisibility(INVISIBLE);
+                return;
+            }
+            textView.setText(audioList.get(audioIndex));
+
+            if (position == mValue + 1) {
+                holder.itemView.setScaleX(2);
+                holder.itemView.setScaleY(2);
             }
         }
 
         @Override
         public int getItemCount() {
-            return audioList.size();
+//            return Integer.MAX_VALUE;
+            return audioList.size() + 2;
         }
-    };
+    }
+
+    public static class AudioSelectorLayoutManager extends LinearLayoutManager {
+
+        public AudioSelectorLayoutManager(Context context) {
+            super(context);
+        }
+    }
 
     private void Construct(Context context) {
-        mContext = context;
-        LayoutInflater.from(context).inflate(R.layout.audio_selector, this, true);
-        mSelector = findViewById(R.id.AudioList);
-        linearLayoutManager = new LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL,false);
-        mSelector.setLayoutManager(linearLayoutManager);
+//        setBackgroundColor(Color.BLUE);
+        layoutManager = new AudioSelectorLayoutManager(context);
+        setLayoutManager(layoutManager);
+        layoutManager.setOrientation(RecyclerView.HORIZONTAL);
+        setAdapter(new RVAdapter(64f, false, null));
     }
 
     public void bindData(int position, List<String> list, OnValueChangeListener onValueChangeListener) {
-        listener = onValueChangeListener;
+        mOnValueChangeListener = onValueChangeListener;
         audioList = list;
-        originPosition = position;
-        mSelector.setAdapter(adapter);
-        new Handler(mContext.getMainLooper()).postDelayed(() -> mSelector.smoothScrollToPosition(originPosition + 1), 100);
+        mValue = position;
+
+        scrollToPosition(position);
+
+//        int offset = Math.floorDiv(Integer.MAX_VALUE / audioList.size(), 2) * audioList.size() - 1;
+//        Log.d(Tag, "Bind data " + position + " offset " + offset);
+//        scrollToPosition(position + offset);
     }
+
+    @Override
+    public void onScrollStateChanged(int state) {
+        if (state == SCROLL_STATE_DRAGGING) {
+            for (int i = 0; i < layoutManager.getChildCount(); i++) {
+                View itemView = layoutManager.getChildAt(i);
+                if (itemView != null) {
+                    itemView.setScaleX(1);
+                    itemView.setScaleY(1);
+                } else {
+                    Log.d(Tag, "child null at " + i);
+                }
+            }
+        } else if(state == SCROLL_STATE_IDLE){
+            int position = layoutManager.findFirstVisibleItemPosition();
+            View view = layoutManager.findViewByPosition(position);
+            View center = layoutManager.findViewByPosition(position + 1);
+            View last = layoutManager.findViewByPosition(position + 2);
+            if (view == null) {
+                Log.w(Tag, "Error view at " + position);
+                return;
+            }
+            if (center == null) {
+                Log.w(Tag, "Error view at " + (position + 1));
+                return;
+            }
+            int offset = view.getLeft();
+            int width = view.getWidth();
+
+            Log.d(Tag, "onScrollStateChanged offset " + offset + " width " + width);
+
+            if(offset == 0) {
+//                int newValue = (position + 1) % audioList.size();  // skip first
+                int newValue = position + 1 - 1;  // skip first, (center - 1)
+                int oldValue = mValue;
+                mValue = newValue;
+
+                center.setScaleX(2);
+                center.setScaleY(2);
+
+                Log.d(Tag, "ValueChanged : old " + oldValue + " new " + newValue);
+                mOnValueChangeListener.onValueChange(oldValue, newValue);
+            } else if (Math.abs(offset + width) < 3 && last != null){
+                //fixup pixi offset
+                scrollTo(width,0);
+
+                int newValue = position + 1;  // skip first, (center - 1)
+                int oldValue = mValue;
+                mValue = newValue;
+
+                last.setScaleX(2);
+                last.setScaleY(2);
+
+                Log.d(Tag, "ValueChanged : old " + oldValue + " new " + newValue);
+                mOnValueChangeListener.onValueChange(oldValue, newValue);
+            } else if(-offset < width / 2){
+                smoothScrollBy(offset, 0);
+            }
+            else {
+                smoothScrollBy(width + offset, 0);
+            }
+        }
+    }
+
 }

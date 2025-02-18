@@ -1,7 +1,5 @@
 package com.madao.simplebeat;
 
-import androidx.annotation.NonNull;
-
 public class AudioData {
     private byte[] upbeat;
     private byte[] downbeat;
@@ -32,11 +30,11 @@ public class AudioData {
         this.downbeat = downbeat;
     }
 
-    public void setBeat(byte[] beat) {
-        isLoaded = true;
-        this.upbeat = beat;
-        this.downbeat = beat;
-    }
+//    public void setBeat(byte[] beat) {
+//        isLoaded = true;
+//        this.upbeat = beat;
+//        this.downbeat = beat;
+//    }
 
     public String getUpbeatPath() {
         return upbeatPath;

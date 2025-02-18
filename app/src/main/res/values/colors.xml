@@ -4,6 +4,7 @@
     <color name="gray_100">#8EEEEEEE</color>
     <color name="gray_300">#FFEEEEEE</color>
     <color name="gray_900">#FF999999</color>
+    <color name="gray_1200">#FF222222</color>
     <color name="blue_700">#FF021AEE</color>
     <color name="red_500">#FFF44336</color>
     <color name="red_800">#FFC62828</color>

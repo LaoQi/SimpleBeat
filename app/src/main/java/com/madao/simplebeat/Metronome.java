@@ -9,6 +9,7 @@ import android.util.Log;
 import java.util.Arrays;
 
 public class Metronome extends Thread {
+	private final static String Tag = "Metronome";
 	private AudioTrack audioTrack;
 	private boolean playing = false;
 	private boolean quit = false;
@@ -26,9 +27,8 @@ public class Metronome extends Thread {
 	private long startTime;
 	private int tickCount;
 
-	private byte[] upbeat;
-	private byte[] downbeat;
-	
+	private AudioData audioData;
+
 	public Metronome(Handler handler) {
 		setDaemon(true);
 		this.mHandler = handler;
@@ -90,11 +90,11 @@ public class Metronome extends Thread {
 		wave = new byte[total];
 		Arrays.fill(wave, (byte)0);
 
-		byte[] beat1 = downbeat;
-		byte[] beat2 = upbeat;
+		byte[] beat1 = audioData.getDownbeat();
+		byte[] beat2 = audioData.getUpbeat();
 		if (booster) {
-			beat1 = soundBooster(downbeat);
-			beat2 = soundBooster(upbeat);
+			beat1 = soundBooster(beat1);
+			beat2 = soundBooster(beat2);
 		}
 
 		System.arraycopy(beat1, 0, wave, 0, Math.min(beat1.length, unit));
@@ -112,12 +112,6 @@ public class Metronome extends Thread {
 		tickCount += notes;
 		long endTime = System.currentTimeMillis();
 		mHandler.sendMessage(Messages.TickTime((int)(endTime - startTime), tickCount));
-//		int offset = 0;
-//		while (offset < wave.length) {
-//			int end = Math.min(wave.length - offset, Constant.SampleRate);
-//			audioTrack.write(wave, offset, end);
-//			offset += sampleRate;
-//		}
 	}
 
 	@Override
@@ -133,7 +127,7 @@ public class Metronome extends Thread {
 				try {
 					Thread.sleep(10);
 				} catch (InterruptedException e) {
-					e.printStackTrace();
+					Log.w(Tag, e.toString(), e);
 				}
 			}
 		}
@@ -142,11 +136,11 @@ public class Metronome extends Thread {
 	public void pause() {
 		playing = false;
 		audioTrack.pause();
+		audioTrack.flush();
 	}
 
 	public void play() {
 		playing = true;
-		generateSection();
 		audioTrack.play();
 		tickCount = 0;
 		startTime = System.currentTimeMillis();
@@ -172,14 +166,9 @@ public class Metronome extends Thread {
 		this.notes = notes;
 	}
 
-	public void setUpbeat(byte[] upbeat) {
+	public void setAudioData(AudioData audioData) {
+		this.audioData = audioData;
 		this.changed = true;
-		this.upbeat = upbeat;
-	}
-
-	public void setDownbeat(byte[] downbeat) {
-		this.changed = true;
-		this.downbeat = downbeat;
 	}
 
 	public void setBooster(boolean value) {
