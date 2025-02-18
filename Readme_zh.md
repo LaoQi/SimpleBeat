@@ -8,7 +8,12 @@
 
 ### Screenshot
 
-![screenshot](screenshot/Screenshot.png)
+![screenshot](screenshot/Screenshot_20250219_010018.png)
+
+##### 小屏设备(手表)
+
+![screenshot](screenshot/Screenshot_20250219_005436.png)
+
 
 ### 节拍准确性
 

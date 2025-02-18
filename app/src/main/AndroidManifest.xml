@@ -17,6 +17,7 @@
         <activity
             android:name=".MetronomeActivity"
             android:configChanges="orientation"
+            android:theme="@style/Theme.SimpleBeat"
             android:exported="true"
             android:taskAffinity="${applicationId}"
             tools:ignore="LockedOrientationActivity">

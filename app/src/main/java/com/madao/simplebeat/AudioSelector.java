@@ -155,16 +155,19 @@ public class AudioSelector extends RecyclerView {
             int position = layoutManager.findFirstVisibleItemPosition();
             View view = layoutManager.findViewByPosition(position);
             View center = layoutManager.findViewByPosition(position + 1);
+            View last = layoutManager.findViewByPosition(position + 2);
             if (view == null) {
                 Log.w(Tag, "Error view at " + position);
                 return;
             }
             if (center == null) {
-                Log.w(Tag, "Error view at " + position);
+                Log.w(Tag, "Error view at " + (position + 1));
                 return;
             }
             int offset = view.getLeft();
             int width = view.getWidth();
+
+            Log.d(Tag, "onScrollStateChanged offset " + offset + " width " + width);
 
             if(offset == 0) {
 //                int newValue = (position + 1) % audioList.size();  // skip first
@@ -174,6 +177,19 @@ public class AudioSelector extends RecyclerView {
 
                 center.setScaleX(2);
                 center.setScaleY(2);
+
+                Log.d(Tag, "ValueChanged : old " + oldValue + " new " + newValue);
+                mOnValueChangeListener.onValueChange(oldValue, newValue);
+            } else if (Math.abs(offset + width) < 3 && last != null){
+                //fixup pixi offset
+                scrollTo(width,0);
+
+                int newValue = position + 1;  // skip first, (center - 1)
+                int oldValue = mValue;
+                mValue = newValue;
+
+                last.setScaleX(2);
+                last.setScaleY(2);
 
                 Log.d(Tag, "ValueChanged : old " + oldValue + " new " + newValue);
                 mOnValueChangeListener.onValueChange(oldValue, newValue);

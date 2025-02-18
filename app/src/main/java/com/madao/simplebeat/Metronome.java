@@ -27,8 +27,6 @@ public class Metronome extends Thread {
 	private long startTime;
 	private int tickCount;
 
-//	private byte[] upbeat;
-//	private byte[] downbeat;
 	private AudioData audioData;
 
 	public Metronome(Handler handler) {
@@ -114,12 +112,6 @@ public class Metronome extends Thread {
 		tickCount += notes;
 		long endTime = System.currentTimeMillis();
 		mHandler.sendMessage(Messages.TickTime((int)(endTime - startTime), tickCount));
-//		int offset = 0;
-//		while (offset < wave.length) {
-//			int end = Math.min(wave.length - offset, Constant.SampleRate);
-//			audioTrack.write(wave, offset, end);
-//			offset += sampleRate;
-//		}
 	}
 
 	@Override
@@ -144,11 +136,11 @@ public class Metronome extends Thread {
 	public void pause() {
 		playing = false;
 		audioTrack.pause();
+		audioTrack.flush();
 	}
 
 	public void play() {
 		playing = true;
-		generateSection();
 		audioTrack.play();
 		tickCount = 0;
 		startTime = System.currentTimeMillis();
@@ -178,15 +170,6 @@ public class Metronome extends Thread {
 		this.audioData = audioData;
 		this.changed = true;
 	}
-//	public void setUpbeat(byte[] upbeat) {
-//		this.changed = true;
-//		this.upbeat = upbeat;
-//	}
-//
-//	public void setDownbeat(byte[] downbeat) {
-//		this.changed = true;
-//		this.downbeat = downbeat;
-//	}
 
 	public void setBooster(boolean value) {
 		this.changed = true;

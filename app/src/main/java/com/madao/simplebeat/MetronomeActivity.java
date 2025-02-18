@@ -2,9 +2,13 @@ package com.madao.simplebeat;
 
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
+import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -12,15 +16,19 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.GestureDetector;
+import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageButton;
+import android.widget.NumberPicker;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
 import java.io.IOException;
@@ -36,6 +44,7 @@ public class MetronomeActivity extends AppCompatActivity {
     private boolean soundBooster = false;
     private boolean isKeepScreen;
     private int audioInitPosition;
+    private ImageButton settingsButton;
     private TextView timerBar;
     private ImageButton startButton;
     private ConstraintLayout timerAndPlay;
@@ -95,6 +104,7 @@ public class MetronomeActivity extends AppCompatActivity {
         initAudioSelector();
         initTimerBar();
 
+        settingsButton = findViewById(R.id.settingsButton);
         startButton = findViewById(R.id.startButton);
         timerAndPlay = findViewById(R.id.TimerAndPlay);
         bpmAndAudioButtons = findViewById(R.id.BpmAndAudioButtons);
@@ -102,6 +112,15 @@ public class MetronomeActivity extends AppCompatActivity {
         mAnimator.setStartButton(startButton)
                 .setTimeAndPlay(timerAndPlay)
                 .setBpmAndAudioButtons(bpmAndAudioButtons);
+
+        startButton.setOnLongClickListener(v -> {
+            Log.d(Tag, "Start at long click");
+            showTimerSetting();
+            return true;
+        });
+
+        //            startActivity(new Intent(this, SettingsActivity.class));
+        settingsButton.setOnClickListener(this::showMenu);
     }
 
     private void resizeWindow() {
@@ -135,6 +154,18 @@ public class MetronomeActivity extends AppCompatActivity {
         bpmButton.setTextSize(TypedValue.COMPLEX_UNIT_PX, unit * 0.8f);
         audioSelectorButton.setTextSize(TypedValue.COMPLEX_UNIT_PX, unit * 0.8f);
 
+        if (height / (width * 1f) > 1.8f) {
+            Log.d(Tag, "Long screen resize");
+            // long screen
+            ConstraintLayout.LayoutParams params1 = (ConstraintLayout.LayoutParams) timerAndPlay.getLayoutParams();
+            params1.verticalBias = 0.5f;
+            timerAndPlay.setLayoutParams(params1);
+
+            ConstraintLayout.LayoutParams params2 = (ConstraintLayout.LayoutParams) bpmAndAudioButtons.getLayoutParams();
+            params2.verticalBias = 0.5f;
+            bpmAndAudioButtons.setLayoutParams(params2);
+        }
+
         if (isCompact) {
             Log.d(Tag, "Compact reset buttons");
             ConstraintLayout.LayoutParams params1 = (ConstraintLayout.LayoutParams) bpmButton.getLayoutParams();
@@ -144,6 +175,16 @@ public class MetronomeActivity extends AppCompatActivity {
             ConstraintLayout.LayoutParams params2 = (ConstraintLayout.LayoutParams) audioSelectorButton.getLayoutParams();
             params2.horizontalBias = 0.9f;
             audioSelectorButton.setLayoutParams(params2);
+
+            ConstraintLayout.LayoutParams params3 = (ConstraintLayout.LayoutParams) settingsButton.getLayoutParams();
+            params3.topMargin = 4;
+            params3.rightMargin = 4;
+            settingsButton.setLayoutParams(params3);
+            settingsButton.setScaleX(0.5f);
+            settingsButton.setScaleY(0.5f);
+//            settingsButton.setMaxWidth((int) (unit * 0.5));
+//            settingsButton.setMaxHeight((int) (unit * 0.5));
+
         }
 
         bpmPicker.Resize(unit, isCompact, typeface);
@@ -340,6 +381,38 @@ public class MetronomeActivity extends AppCompatActivity {
         updateTimerBar();
     }
 
+    private void showTimerSetting() {
+        String title = getString(R.string.timer_setting);
+
+        final AlertDialog.Builder timeDialog =
+                new AlertDialog.Builder(this);
+        timeDialog.setTitle(title);
+
+        View selector = View.inflate(this, R.layout.time_selector, null);
+        timeDialog.setView(selector);
+
+        final NumberPicker minutesPicker = selector.findViewById(R.id.timer_picker_minutes);
+        final NumberPicker secondsPicker = selector.findViewById(R.id.timer_picker_seconds);
+
+        minutesPicker.setMaxValue(120);
+        minutesPicker.setMinValue(0);
+
+        secondsPicker.setMaxValue(59);
+        secondsPicker.setMinValue(0);
+
+        timeDialog.setPositiveButton(R.string.ok,
+                (dialog, which) -> {
+                    int minutes = minutesPicker.getValue();
+                    int seconds = secondsPicker.getValue();
+                    if (minutes > 0 || seconds > 0) {
+                        setTimerOn(minutes, seconds);
+                    }
+                });
+        timeDialog.setNegativeButton(R.string.cancel, (dialog, which) -> { });
+
+        timeDialog.show();
+    }
+
 
     public void onStartStopClick(View view) {
         if (isPlaying) {
@@ -347,6 +420,81 @@ public class MetronomeActivity extends AppCompatActivity {
         } else {
             play();
         }
+    }
+
+    private void showAbout() {
+        String title = getString(R.string.app_name);
+        PackageManager pm = getPackageManager();
+        try {
+            PackageInfo packageInfo = pm.getPackageInfo(getPackageName(), 0);
+            title = title + "  v" + packageInfo.versionName;
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.w(Tag, e.toString(), e);
+        }
+
+        final AlertDialog.Builder aboutDialog =
+                new AlertDialog.Builder(this);
+        aboutDialog.setTitle(title);
+        aboutDialog.setMessage(Constant.About);
+        aboutDialog.setPositiveButton(R.string.ok,
+                (dialog, which) -> {
+
+                });
+        aboutDialog.setNegativeButton(R.string.source_code, (dialog, which) -> {
+            try {
+                Uri uri = Uri.parse(Constant.SourceCodeUrl);
+                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                startActivity(intent);
+            } catch (Exception e) {
+                Log.w(Tag, e.toString(), e);
+            }
+        });
+        aboutDialog.show();
+    }
+
+    enum MenusType {
+        MenuStatusBar, MenuKeepScreen, MenuSoundBooster, MenuTimerSetting, MenuAbout
+    }
+
+    public void showMenu(View view) {
+        PopupMenu popupMenu = getPopupMenu(view);
+
+        Menu menu = popupMenu.getMenu();
+        menu.clear();
+
+        if (isKeepScreen) {
+            menu.add(1,  MenusType.MenuKeepScreen.ordinal(), 1, R.string.keep_screen_off);
+        } else {
+            menu.add(1, MenusType.MenuKeepScreen.ordinal(), 1, R.string.keep_screen_on);
+        }
+
+        if (soundBooster) {
+            menu.add(1,  MenusType.MenuSoundBooster.ordinal(), 1, R.string.sound_booster_off);
+        } else {
+            menu.add(1, MenusType.MenuSoundBooster.ordinal(), 1, R.string.sound_booster_on);
+        }
+
+        menu.add(1, MenusType.MenuTimerSetting.ordinal(), 1, R.string.timer_setting);
+
+        menu.add(1, MenusType.MenuAbout.ordinal(), 1, R.string.about);
+        popupMenu.show();
+    }
+
+    @NonNull
+    private PopupMenu getPopupMenu(View view) {
+        PopupMenu popupMenu = new PopupMenu(this, view);
+        popupMenu.setOnMenuItemClickListener(item -> {
+            switch (MenusType.values()[item.getItemId()]) {
+                case MenuKeepScreen -> toggleKeepScreen();
+                case MenuSoundBooster -> toggleSoundBooster();
+                case MenuTimerSetting -> showTimerSetting();
+                case MenuAbout -> showAbout();
+                default ->
+                        throw new IllegalStateException("Unexpected value: " + MenusType.values()[item.getItemId()]);
+            }
+            return true;
+        });
+        return popupMenu;
     }
 
     @Override
@@ -358,6 +506,7 @@ public class MetronomeActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        Log.d(Tag, "onResume");
         resizeWindow();
         if (isKeepScreen) {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -368,6 +517,7 @@ public class MetronomeActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
+        Log.d(Tag, "onPause");
         super.onPause();
         profile.setKeepScreen(isKeepScreen);
         if (isKeepScreen) {
