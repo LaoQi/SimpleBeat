@@ -11,6 +11,7 @@ public class Profile {
     private final static String KeyAudio = "Audio";
     private final static String KeyKeepScreen = "KeepScreen";
     private final static String KeySoundBooster = "SoundBooster";
+    private final static String KeyBackgroundPlayback = "BackgroundPlayback";
 
     private final static String KeyTimer = "Timer";
 
@@ -28,6 +29,7 @@ public class Profile {
     }
     public boolean getKeepScreen() { return preferences.getBoolean(KeyKeepScreen, false); }
     public boolean getSoundBooster() { return preferences.getBoolean(KeySoundBooster, false); }
+    public boolean getBackgroundPlayback() { return preferences.getBoolean(KeyBackgroundPlayback, false); }
 
     public int getTimer() { return preferences.getInt(KeyTimer, 0); }
 
@@ -63,6 +65,10 @@ public class Profile {
 
     public void setSoundBooster(boolean value) {
         setValue(KeySoundBooster, value);
+    }
+
+    public void setBackgroundPlayback(boolean value) {
+        setValue(KeyBackgroundPlayback, value);
     }
 
     public void setTimer(int value) { setValue(KeyTimer, value);}

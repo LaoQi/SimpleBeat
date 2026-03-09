@@ -37,4 +37,18 @@
 <!--        <item name="windowNoTitle">false</item>-->
 <!--        <item name="windowActionBar">false</item>-->
     </style>
+
+    <style name="ThemeOverlay.SimpleBeat.PopupMenu" parent="">
+        <item name="popupMenuStyle">@style/Widget.SimpleBeat.PopupMenu</item>
+        <item name="textAppearanceLargePopupMenu">@style/TextAppearance.SimpleBeat.PopupMenu</item>
+        <item name="textAppearanceSmallPopupMenu">@style/TextAppearance.SimpleBeat.PopupMenu</item>
+    </style>
+
+    <style name="Widget.SimpleBeat.PopupMenu" parent="Widget.AppCompat.PopupMenu">
+        <item name="android:popupBackground">@drawable/popup_menu_background</item>
+    </style>
+
+    <style name="TextAppearance.SimpleBeat.PopupMenu" parent="TextAppearance.AppCompat.Widget.PopupMenu.Large">
+        <item name="android:textColor">@color/gray_300</item>
+    </style>
 </resources>

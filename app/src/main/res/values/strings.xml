@@ -15,8 +15,14 @@
     <string name="sound_booster">Sound Booster</string>
     <string name="sound_booster_on">Sound Booster On</string>
     <string name="sound_booster_off">Sound Booster Off</string>
+    <string name="background_playback_on">Background Playback On</string>
+    <string name="background_playback_off">Background Playback Off</string>
     <string name="timer_setting">Set Timer</string>
     <string name="cancel">Cancel</string>
     <string name="tuner">Tuner</string>
     <string name="settings">settings</string>
+    <string name="notification_channel_name">Metronome Playback</string>
+    <string name="notification_title">SimpleBeat is playing</string>
+    <string name="notification_playing">%1$d BPM | %2$s</string>
+    <string name="notification_playing_with_timer">%1$d BPM | %2$s | %3$ds left</string>
 </resources>

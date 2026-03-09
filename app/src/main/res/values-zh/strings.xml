@@ -13,8 +13,14 @@
     <string name="sound_booster">音量增强</string>
     <string name="sound_booster_on">打开音量增强</string>
     <string name="sound_booster_off">关闭音量增强</string>
+    <string name="background_playback_on">打开后台播放</string>
+    <string name="background_playback_off">关闭后台播放</string>
     <string name="timer_setting">设置定时器</string>
     <string name="cancel">取消</string>
     <string name="tuner">调音器</string>
     <string name="settings">设置</string>
+    <string name="notification_channel_name">节拍器播放</string>
+    <string name="notification_title">SimpleBeat 正在播放</string>
+    <string name="notification_playing">%1$d BPM | %2$s</string>
+    <string name="notification_playing_with_timer">%1$d BPM | %2$s | 剩余 %3$d 秒</string>
 </resources>
